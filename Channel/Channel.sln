@@ -7,12 +7,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Channel", "Channel\Channel.
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		ChannelDebug|x64 = ChannelDebug|x64
+		ChannelDebug|x86 = ChannelDebug|x86
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.ChannelDebug|x64.ActiveCfg = ChannelDebug|x64
+		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.ChannelDebug|x64.Build.0 = ChannelDebug|x64
+		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.ChannelDebug|x86.ActiveCfg = ChannelDebug|x64
+		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.ChannelDebug|x86.Build.0 = ChannelDebug|x64
 		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.Debug|x64.ActiveCfg = Debug|x64
 		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.Debug|x64.Build.0 = Debug|x64
 		{A247F2D6-09B8-457F-8FC2-5AFBBDB62414}.Debug|x86.ActiveCfg = Debug|Win32
