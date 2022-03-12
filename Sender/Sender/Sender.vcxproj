@@ -140,6 +140,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="sender.cpp" />
+    <ClCompile Include="sender.c" />
+    <ClCompile Include="sender_functions.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HardCodedData.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="sender_functions.h" />
+    <ClInclude Include="SharedHardCodedData.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
