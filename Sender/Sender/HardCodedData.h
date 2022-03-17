@@ -19,7 +19,45 @@ Project description:	Sender-Receiver communication through a noisy channel
 //#include <WS2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
 
-#include "SharedHardCodedData.h"
+# define FUNCTION_SUCCESS 0
+# define FUNCTION_ERROR 1
+
+
+// Bounds (when possible)
+#define BITS_IN_BYTE			8
+#define PORT_MIN_VALUE			0
+#define PORT_MAX_VALUE			65535											// Max port number
+#define DATA_BYTES_IN_FRAME		26												// max data bits in a Hamming interval 
+#define BYTES_IN_FRAME			31												// Total number of bits in Hamming interval, including the check bits
+#define DEFAULT_HAMMING_BITS	5												// Default number of Hamming check bits
+#define FRAMES_IN_PACKET		30												// Max number of Hamming intervals in a packet	          			
+#define BYTES_IN_PACKET			FRAMES_IN_PACKET * BYTES_IN_FRAME				// Max data in packet, size in bytes
+#define DATA_BYTES_IN_PACKET	FRAMES_IN_PACKET * DATA_BYTES_IN_FRAME			// Max packet size in bytes
+#define MAX_FN					300												// Define max file name length to 300 (includin extentions) 	
+
+
+#define MAX_ERROR_MESSAGE 200	// Custom errors
+
+// communication settings
+#define SERVER_WAIT_MS 15000
+#define HUMAN_WAIT_MS 600000
+#define SHUTOWN_WAIT_MS 15000
+#define PEEK_WAIT 100
+
+
+
+
+// communication messages
+typedef enum {
+	CLIENT_REQUEST, SERVER_APPROVED, SERVER_DENIED,
+	CLIENT_DISCONNECT
+} message_type;
+
+/*typedef struct packet
+{
+} packet;
+*/
+typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED } TransferResult_t;
 
 #endif
-#pragma once
+

@@ -147,7 +147,6 @@
     <ClInclude Include="HardCodedData.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sender_functions.h" />
-    <ClInclude Include="SharedHardCodedData.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

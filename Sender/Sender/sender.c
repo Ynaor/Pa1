@@ -17,9 +17,8 @@ Project description:	Sender-Receiver communication through a noisy channel
 #include <stdlib.h>
 #include <string.h>
 
-#include "SharedHardCodedData.h"
 //#include "text_parsing.h"
-//#include "sender_functions.h"
+#include "sender_functions.h"
 
 /// <summary>
 /// Sender main. Inputs:

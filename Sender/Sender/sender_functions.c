@@ -17,21 +17,24 @@ Project description:	Sender-Receiver communication through a noisy channel
 #include <WinSock2.h>
 #include <Windows.h>
 #include <WS2tcpip.h>
+#include <math.h>
 #pragma comment(lib, "Ws2_32.lib")
 
-#include "SharedHardCodedData.h"
 #include "HardCodedData.h"
+#include "sender_functions.h"
 
 
 static int g_port;
 static char* g_ip;
 static int g_graceful_shutdown;
+static unsigned char read_mask = 0;
+static char read_byte;
+static int total_bytes_read = 0;
 
 /// <summary>
 /// Boot up the client
 /// </summary>
 /// <param name="port">server port number</param>
-/// <param name="player_name">the player name</param>
 /// <returns>zero if successful, one otherwise</returns>
 int boot_client(char* address, int port)
 {
@@ -64,71 +67,221 @@ int boot_client(char* address, int port)
         return 1;
     }
 
-    if (connect(main_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR)
-    {
+    if (connect(main_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR){
         printf("Failed connecting to server on %s:%lu.\nChoose what to do next:\n1. Try to reconnect\n2. Exit\n", address, port);
     }
 
-    // let client know it connected succesfully.
-    printf("Connected to server on %s:%lu\n", g_ip, g_port);
+    // Client connected succefully, get file name
+    printf("enter file name:\n");
+
+//    if (file_name too long)
+  //      print error
 
     // Need to add communication
 }
 
-/// <summary>
-/// Starts communication with server
-/// </summary>
-int communicate_server()
-{
-}
 
 
+int generate_packets(char* file_name, SOCKET *p_connection_socket) {
+    FILE* fp;
+    if (fopen_s(&fp, file_name, "rb")) {
+        fprintf(stderr, "Error: failed to read file");
+        return 1;
+    } 
+    
+    int end_of_file = 0;
 
-/// <summary>
-/// shuts down a socket if required
-/// </summary>
-/// <param name="p_connection">pointer to socket</param>
-/// <param name="p_log_file">pointer to log file</param>
-/// <returns>FUNCTION_SUCCESS or FUNCTION_ERROR</returns>
-int handle_shutdown(SOCKET* p_connection, HANDLE* p_log_file)
-{
-    int error = 0;
+    int packet_buffer[BYTES_IN_PACKET * BITS_IN_BYTE] = { 0 };
+    int bits_in_packet_buffer = 0;
 
-    if (*p_connection != INVALID_SOCKET && g_graceful_shutdown == 1)
-    {
-        if (initialize_graceful_shutdown(p_connection, FALSE) == FUNCTION_ERROR)
-        {
-            printf("ERROR: Failed to close socket.\n");
-            print_error_to_log(p_log_file, "ERROR: Failed to close socket.\n");
-            return FUNCTION_ERROR;
+    int frame_data_buffer[DATA_BYTES_IN_FRAME] = { 0 };
+    int frame_buffer[BYTES_IN_FRAME] = { 0 };
+    
+    int bits_read = 0;
+    int bits_in_frame_buffer = 0;
+    
+    int hamming_check_bits = DEFAULT_HAMMING_BITS;
+
+    char message[BYTES_IN_PACKET];
+
+
+        while (TRUE) {
+
+            while (bits_in_packet_buffer < BYTES_IN_PACKET * BITS_IN_BYTE) {
+
+                // read data for Hamming interval. If the read_file_bits returns -1 and bits_read is zero there is no frame to generate.
+                if (read_file_bits(&fp, &frame_data_buffer, &bits_read) == -1) {
+                    if (bits_read == 0)
+                        return 0;
+                    end_of_file = 1;
+                }
+                hamming_check_bits = ceil(log2(bits_read));
+                bits_in_frame_buffer = bits_read + hamming_check_bits;
+                create_hamming(&frame_data_buffer, bits_read, &frame_buffer, hamming_check_bits);
+                concatenate_array(packet_buffer, bits_in_packet_buffer, frame_buffer, bits_in_frame_buffer);
+                
+                bits_in_packet_buffer += bits_in_frame_buffer;
+                
+                bits_read = 0;
+                memset(frame_data_buffer, 0, sizeof(frame_data_buffer));
+                memset(frame_buffer, 0, sizeof(frame_buffer));
+
+                if (end_of_file)
+                    break;
+            }
+
+            int_to_char(packet_buffer, message, BYTES_IN_PACKET);
+            send_packet(message, BYTES_IN_PACKET, p_connection_socket);
+
+            memset(packet_buffer, 0, sizeof(packet_buffer));
+            bits_in_packet_buffer = 0;
+            
+            if (end_of_file)
+                break;
         }
-    }
-    else if (*p_connection != INVALID_SOCKET)
-    {
-        if (closesocket(*p_connection) == INVALID_SOCKET)
-        {
-            error = WSAGetLastError();
-            if (error == WSAENOTSOCK || error == WSAECONNABORTED)
-                return FUNCTION_SUCCESS;
-            printf("ERROR: Failed to close socket.\n");
-            print_error_to_log(p_log_file, "ERROR: Failed to close socket.\n");
-            return FUNCTION_ERROR;
+
+        if (!fclose(fp)) {
+            fprintf(stderr, "Error: failed to close file");
+            return 1;
         }
+
+        return 0;          
+}
+
+
+/// <summary>
+/// Read file to create Hamming interval data
+/// </summary>
+/// <param name="p_file">file pointer</param>
+/// <param name="buffer">data buffer in which to save the read bits</param>
+/// <returns>zero if MAX_DATA_BITS were read, one if reached end of file</returns>
+int read_file_bits(FILE* p_file, int *data_buffer[], int *bits_read){
+    while (bits_read < DATA_BYTES_IN_FRAME) {
+        read_mask >>= 1;
+        if (read_mask == 0) {
+            if (fread(&read_byte, 1, 1, p_file) <= 0)
+                return -1;
+            total_bytes_read++; 
+            read_mask = 1 << (BITS_IN_BYTE - 1);
+        }
+        data_buffer[*bits_read] = read_mask & read_byte;
+
+        bits_read++; 
+    }
+    return 0; 
+}
+
+
+/// <summary>
+/// Create Hamming interval by adding the hamming check bits to the data bits; this function does not need to have a specific file size
+/// </summary>
+/// <param name="data_buffer">Hamming interval data bits</param>
+/// <param name="bits_read">The actual number of data bits in data_buffer</param>
+void create_hamming(int *data_buffer, int bits_read, int *frame_buffer, int check_bits) {
+
+    // place the check bits in the packet_buffer array and initialize to 1
+    for (int i = 0; i < check_bits; i++) {
+        frame_buffer[(int)pow(2, i)-1] = 1;
     }
 
-    *p_connection = INVALID_SOCKET;
+    // place the data bits in the frame_buffer; start entering data into frame_buffer from index 1 - min check_bits = 1
+    int frame_buffer_index = 1;
+    for (int i = 0; i < bits_read - 1; i++) {
+        if (frame_buffer[frame_buffer_index] == 1)
+            frame_buffer_index++;
+        frame_buffer[frame_buffer_index] = data_buffer[i];
+        frame_buffer_index++;
+    }
 
-    return FUNCTION_SUCCESS;
+    int valid_bits_in_frame = check_bits + bits_read;
+
+    // set the values of the hamming bits:
+    for (int i = 0; i < check_bits; i++) {
+        int check_bit_index = (int)pow(2, i) - 1;
+        int res = 0;
+        for (int j = 0; j < valid_bits_in_frame; j++) {
+            if ((j + 1) & (check_bit_index + 1))
+                res = res ^ frame_buffer[i];
+        }
+        frame_buffer[check_bit_index] = res;
+    }
 }
 
-int read_file_bits(FILE* p_file, int num_bits, int buffer) {
 
+/// <summary>
+/// Sends a string of known size via a socket
+/// </summary>
+/// <param name="buffer">string buffer</param>
+/// <param name="message_len">length of the string</param>
+/// <param name="p_connection_socket">pointer to the socket</param>
+/// <returns>send result</returns>
+int send_packet(char* buffer, const int message_len, SOCKET* p_connection_socket) {
+    char* p_current_place = buffer;
+    int bytes_transferred, error_reason;
+    int remaining_bytes = message_len;
+
+    // send the string (not zero terminated)
+    while (remaining_bytes > 0) {
+        bytes_transferred = send((*p_connection_socket), p_current_place, remaining_bytes, 0);
+        if (bytes_transferred == SOCKET_ERROR)
+        {
+            // check if send has been disabled
+            error_reason = WSAGetLastError();
+            if (error_reason == WSAESHUTDOWN || error_reason == WSAENOTSOCK || error_reason == WSAEINTR) {
+                fprintf(stderr, "PRINT_MORE_INFO: send failed because %d.\n", error_reason);
+                return 1;
+            }
+
+            // if not, error and hard close is done
+            closesocket(*p_connection_socket);
+            *p_connection_socket = INVALID_SOCKET;
+            return 1;
+        }
+
+
+        // check how many bytes left
+        remaining_bytes -= bytes_transferred;
+        p_current_place += bytes_transferred;
+    }
+
+    return 0;
 }
 
-int hamming_code() {
 
+/// <summary>
+/// Merge two arrays from a given position in the first array
+/// </summary>
+/// <param name="basa_array">The array to have another array added to</param>
+/// <param name="last_index">The index in the base_array that the second_array will be added to</param>
+/// <param name="seconed_array">The array that is added</param>
+/// <param name="size">The number of elements of second_array to be added to base_array</param>
+void concatenate_array(int* basa_array, int last_index, int* seconed_array, int size) {
+    for (int i = 0; i < size; i++) {
+        basa_array[last_index + i] = seconed_array[i];
+    }
 }
 
-int send_buffer() {
 
+/// <summary>
+/// Converts an array of ints to chars by calculating the decimal value of every 8 consecutive bits
+/// </summary>
+/// <param name="source">source int array</param>
+/// <param name="dest">destination char array</param>
+/// <param name="num_of_bytes">size of char array</param>
+/// <returns>send result</returns>
+void int_to_char(int* source, char* dest, int num_of_bytes) {
+    int temp = 0;
+    int curr_val = 0;
+    int ref_index = 0;
+
+    for (int i = 0; i < (num_of_bytes); i++){
+        curr_val = 0;
+        ref_index = 8 * i;
+        for (int j = 0; j < BITS_IN_BYTE; j++) {
+            temp = source[j + ref_index];
+            temp *= pow(2, j + BITS_IN_BYTE - 1);
+            curr_val += temp;
+        }
+        dest[i] = curr_val;
+    }
 }
