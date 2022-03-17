@@ -26,10 +26,10 @@ Project description:	Sender-Receiver communication through a noisy channel
 
 static int g_port;
 static char* g_ip;
-static int g_graceful_shutdown;
 static unsigned char read_mask = 0;
 static char read_byte;
-static int total_bytes_read = 0;
+static unsigned int total_bytes_read = 0;
+static unsigned int total_bytes_sent = 0;
 
 /// <summary>
 /// Boot up the client
@@ -38,10 +38,10 @@ static int total_bytes_read = 0;
 /// <returns>zero if successful, one otherwise</returns>
 int boot_client(char* address, int port)
 {
-    int ret_val = 0, g_graceful_shutdown = 0;
     SOCKET main_socket = INVALID_SOCKET;
     g_ip = address;
     g_port = port;
+    char f_name[MAX_FN] = "";
 
     // Initialize Winsock
     WSADATA wsa_data;
@@ -57,32 +57,48 @@ int boot_client(char* address, int port)
     client_service.sin_port = htons(port); //The htons function converts a u_short from host to TCP/IP network byte order (which is big-endian).
     client_service.sin_addr.s_addr = inet_addr(address);
 
-    // create file and file handle for log files - NEED TO ADD 
-
-
     // start server communications
-    main_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (main_socket == INVALID_SOCKET){
-        printf("ERROR: Failed to create a socket.\n");
-        return 1;
+    while (TRUE) {
+
+        total_bytes_read = 0;
+        total_bytes_sent = 0;
+        read_mask = 0;
+
+        main_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (main_socket == INVALID_SOCKET) {
+            printf("ERROR: Failed to create a socket\n");
+            return 1;
+        }
+
+        if (connect(main_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) {
+            printf("Failed connecting to server on %s:%lu\n", address, port);
+            return 1;
+        }
+
+        // Client connected succefully, get file name
+        printf("enter file name:\n");
+        if (fgets(f_name, MAX_FN, stdin) == NULL) {
+            printf("Error: could not read file name\n");
+            return 1;
+        }
+        /// NEED TO HANDLE TO LONG OF A FILE NAME *********************************************
+        if (strcmp(f_name, "quit") == 0) {
+            return 0;
+        }
+
+        if (send_file(f_name, &main_socket)) {
+            return 1;
+        }
+
+        printf("file length: %u bytes\n", total_bytes_read);
+        printf("sent: %u bytes\n", total_bytes_sent);
+
     }
-
-    if (connect(main_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR){
-        printf("Failed connecting to server on %s:%lu.\nChoose what to do next:\n1. Try to reconnect\n2. Exit\n", address, port);
-    }
-
-    // Client connected succefully, get file name
-    printf("enter file name:\n");
-
-//    if (file_name too long)
-  //      print error
-
-    // Need to add communication
 }
 
 
 
-int generate_packets(char* file_name, SOCKET *p_connection_socket) {
+int send_file(char* file_name, SOCKET *p_socket) {
     FILE* fp;
     if (fopen_s(&fp, file_name, "rb")) {
         fprintf(stderr, "Error: failed to read file");
@@ -111,9 +127,9 @@ int generate_packets(char* file_name, SOCKET *p_connection_socket) {
 
                 // read data for Hamming interval. If the read_file_bits returns -1 and bits_read is zero there is no frame to generate.
                 if (read_file_bits(&fp, &frame_data_buffer, &bits_read) == -1) {
-                    if (bits_read == 0)
-                        return 0;
                     end_of_file = 1;
+                    if (bits_read == 0)
+                        break;
                 }
                 hamming_check_bits = ceil(log2(bits_read));
                 bits_in_frame_buffer = bits_read + hamming_check_bits;
@@ -129,9 +145,18 @@ int generate_packets(char* file_name, SOCKET *p_connection_socket) {
                 if (end_of_file)
                     break;
             }
+            
+            // empty packet
+            if (bits_in_packet_buffer == 0)
+                break;
 
             int_to_char(packet_buffer, message, BYTES_IN_PACKET);
-            send_packet(message, BYTES_IN_PACKET, p_connection_socket);
+            
+            if (send_packet(message, BYTES_IN_PACKET, p_socket)) {
+                if (!fclose(fp))
+                    fprintf(stderr, "Error: failed to close file");
+                return 1;
+            }
 
             memset(packet_buffer, 0, sizeof(packet_buffer));
             bits_in_packet_buffer = 0;
@@ -145,7 +170,13 @@ int generate_packets(char* file_name, SOCKET *p_connection_socket) {
             return 1;
         }
 
-        return 0;          
+        if (closesocket(*p_socket) == INVALID_SOCKET){
+            int error = WSAGetLastError();
+            if (error == WSAENOTSOCK || error == WSAECONNABORTED)
+                return 0;
+            printf("ERROR: Failed to close socket.\n");
+            return 1;
+        }        
 }
 
 
@@ -238,6 +269,7 @@ int send_packet(char* buffer, const int message_len, SOCKET* p_connection_socket
             return 1;
         }
 
+        total_bytes_sent += bytes_transferred;
 
         // check how many bytes left
         remaining_bytes -= bytes_transferred;
@@ -279,7 +311,7 @@ void int_to_char(int* source, char* dest, int num_of_bytes) {
         ref_index = 8 * i;
         for (int j = 0; j < BITS_IN_BYTE; j++) {
             temp = source[j + ref_index];
-            temp *= pow(2, j + BITS_IN_BYTE - 1);
+            temp *= pow(2, j + (int)BITS_IN_BYTE - 1);
             curr_val += temp;
         }
         dest[i] = curr_val;
