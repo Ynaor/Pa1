@@ -196,6 +196,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="channel.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="channel.h" />
