@@ -17,10 +17,11 @@ Project description:	Sender-Receiver communication through a noisy channel
 #include <stdlib.h>
 #include <string.h>
 
-#include "sender_functions.h"
+#include "HardCodedData.h"
+#include "receiver_functions.h"
 
 /// <summary>
-/// Sender main. Inputs:
+/// receiver main. Inputs:
 ///		1. IP (X.X.X.X format)
 ///		2. server listening port
 /// </summary>

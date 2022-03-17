@@ -125,7 +125,7 @@ int send_file(char* file_name, SOCKET *p_socket) {
 
             while (bits_in_packet_buffer < BYTES_IN_PACKET * BITS_IN_BYTE) {
 
-                // read data for Hamming interval. If the read_file_bits returns -1 and bits_read is zero there is no frame to generate.
+                // read data for single frame. If the read_file_bits returns -1 and bits_read is zero there is no frame to generate.
                 if (read_file_bits(&fp, &frame_data_buffer, &bits_read) == -1) {
                     end_of_file = 1;
                     if (bits_read == 0)
@@ -150,9 +150,10 @@ int send_file(char* file_name, SOCKET *p_socket) {
             if (bits_in_packet_buffer == 0)
                 break;
 
-            int_to_char(packet_buffer, message, BYTES_IN_PACKET);
+
+            int_to_char(packet_buffer, message, bits_in_packet_buffer / BITS_IN_BYTE);
             
-            if (send_packet(message, BYTES_IN_PACKET, p_socket)) {
+            if (send_packet(message, bits_in_packet_buffer / BITS_IN_BYTE, p_socket)) {
                 if (!fclose(fp))
                     fprintf(stderr, "Error: failed to close file");
                 return 1;
@@ -176,7 +177,8 @@ int send_file(char* file_name, SOCKET *p_socket) {
                 return 0;
             printf("ERROR: Failed to close socket.\n");
             return 1;
-        }        
+        } 
+        return 0;
 }
 
 
@@ -259,7 +261,7 @@ int send_packet(char* buffer, const int message_len, SOCKET* p_connection_socket
             // check if send has been disabled
             error_reason = WSAGetLastError();
             if (error_reason == WSAESHUTDOWN || error_reason == WSAENOTSOCK || error_reason == WSAEINTR) {
-                fprintf(stderr, "PRINT_MORE_INFO: send failed because %d.\n", error_reason);
+                fprintf(stderr, "Error: send failed because %d.\n", error_reason);
                 return 1;
             }
 
