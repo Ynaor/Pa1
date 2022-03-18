@@ -39,20 +39,24 @@ void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockadd
     // Channel
 	memset(aChannelAddr, 0, sizeof(*aChannelAddr));
 	aChannelAddr->sin_family = AF_INET;
-	aChannelAddr->sin_addr.s_addr = htonl(INADDR_ANY);  //  Auto assign IP
-	aChannelAddr->sin_port = 0;                         // Auto assign port
+	aChannelAddr->sin_addr.s_addr = INADDR_ANY;                       //  Auto assign IP
+	aChannelAddr->sin_port = htons(0);                                // Auto assign port
 
 	// Reciever
 	memset(aReceiverAddr, 0, sizeof(*aReceiverAddr));
 	aReceiverAddr->sin_family = AF_INET;
-	aReceiverAddr->sin_addr.s_addr = aChannelAddr->sin_addr.s_addr; // IP address of the server
-	aReceiverAddr->sin_port = 0;                                    // Auto assign port
+	aReceiverAddr->sin_addr.s_addr = aChannelAddr->sin_addr.s_addr;   // IP address of the server
+	aReceiverAddr->sin_port = htons(0);                               // Auto assign port
 
 	// Sender
 	memset(aSenderAddr, 0, sizeof(*aSenderAddr));
 	aSenderAddr->sin_family = AF_INET;
-	aSenderAddr->sin_addr.s_addr =aChannelAddr->sin_addr.s_addr;   // IP address of the server
-	aSenderAddr->sin_port = 0;                                     // Auto assign port
+	aSenderAddr->sin_addr.s_addr =aChannelAddr->sin_addr.s_addr;      // IP address of the server
+	aSenderAddr->sin_port = htons(0);                                 // Auto assign port
+
+	std::cout << "Channel  -> Ip: " << inet_ntoa(aChannelAddr->sin_addr) << " port: " << ntohs(aChannelAddr->sin_port) << "\n";
+	std::cout << "Sender   -> Ip: " << inet_ntoa(aSenderAddr->sin_addr)  << " port: " << ntohs(aSenderAddr->sin_port) << "\n";
+	std::cout << "Reciever -> Ip: " << inet_ntoa(aReceiverAddr->sin_addr)<< " port: " << ntohs(aReceiverAddr->sin_port) << "\n";
 
 	return;
 }
@@ -125,6 +129,10 @@ void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr)
 		std::cerr << "Binding Failed. Exiting..\n" << WSAGetLastError();
 		exit(1);
 	}
+
+	int len = sizeof((SOCKADDR*)aServerAddr);
+	int result = getsockname(*aMainSocket, (SOCKADDR*)aServerAddr, &len);
+	std::cout<< "getsocket(): "<< result;
 }
 
 
@@ -137,7 +145,7 @@ void RunChannel()
 	sockaddr_in channelAddr;
 	WSADATA wsaData;                          // will contain the winsock data
 	
-	
+
 	// Initizliaing Winsock
 	WinsockInit(&wsaData);
 	CreateSocket(&MainSocket);
