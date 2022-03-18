@@ -11,7 +11,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <random>
-
+#include <ws2tcpip.h>
 
 // defines
 #define PORT_MIN_VALUE      0
@@ -35,7 +35,6 @@ void InitAddresses(sockaddr_in* aReceiverAddr, sockaddr_in* aSenderAddr, sockadd
 void WinsockInit(WSADATA* wsaData);
 void CreateSocket(SOCKET* aSocket);
 void InitAddresses(sockaddr_in* aReceiverAddr, sockaddr_in* aSenderAddr, sockaddr_in* aChannelAddr);
-void ValidatePortNumber(int32_t aPortNumber);
 void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr);
 
 

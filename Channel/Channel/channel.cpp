@@ -1,4 +1,4 @@
-#include "channel.h"
+#include "channel.h"s
 
 
 // ********************************************
@@ -63,17 +63,6 @@ void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockadd
 
 
 
-// Check the port value is in bounds, will throw an erro and exit if failed
-void ValidatePortNumber(int32_t aPortNumber)
-{
-	if ((aPortNumber < PORT_MIN_VALUE) || aPortNumber > PORT_MAX_VALUE)
-	{
-		std::cerr << "Port value is out of allowed bounds\n";
-		exit(1);
-	}
-}
-
-
 // Will be generating random noise with given seed 
 void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 {
@@ -102,7 +91,7 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 void DeterministicNoise(int aCycle, char* aBuffer)
 {
 	int counter = 0;
-	unsigned char mask;
+	long long int mask;
 	
 	for (int byte = 0; byte < PACKET_SIZE_BYTES; byte++)
 	{
@@ -115,6 +104,7 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 				gFlippedBits++;
 				counter = 0;                             // reset counter
 			}
+			mask <<= 1;
 			counter++;
 		}
 	}
@@ -130,8 +120,9 @@ void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr)
 		exit(1);
 	}
 
-	int len = sizeof((SOCKADDR*)aServerAddr);
-	int result = getsockname(*aMainSocket, (SOCKADDR*)aServerAddr, &len);
+	listen(*aMainSocket, SOMAXCONN );
+	socklen_t len = sizeof(aServerAddr);
+	int result = getsockname(*aMainSocket, (SOCKADDR*)aServerAddr,&len);
 	std::cout<< "getsocket(): "<< result;
 }
 
@@ -154,8 +145,6 @@ void RunChannel()
 
 
 	// main logic: Recieve a message, flip bits and send back to reciever
-
-
 	while (TRUE)
 	{
 		continue;
