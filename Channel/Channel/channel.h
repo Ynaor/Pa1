@@ -1,16 +1,16 @@
 #pragma once
+
 #pragma comment(lib, "Ws2_32.lib")
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 //includes 
-#include <stdio.h>
-#include <stdlib.h>
 #include "winsock2.h"
-#include <time.h>
+#include <ws2def.h>
 #include <cstdint>
 #include <iostream>
 #include <stdlib.h>
+#include <random>
 
 
 // defines
@@ -23,9 +23,26 @@
 #define FRAMES_PER_PACKET   20     // we wish to send 20 frames in every packet, to increase the size of our packets
 #define PACKET_SIZE_BYTES	620    // 31 bytes per "frame", 20 frames per packet
 #define PACKET_SIZE_BITS    4960   // 620 * 8 bits per byte
+#define TWO_POWER_FIFTEEN   32768  // 2^15
+#define TWO_POWER_SIXTEEN   65536  // 2^16
+ 
 
 
-// members TODO: convert to class channel
-WSADATA wsaData;                          // will contain the winsock data
+
+// Socket Handling
+// TODO: add description for each function
+void InitAddresses(sockaddr_in* aReceiverAddr, sockaddr_in* aSenderAddr, sockaddr_in* aChannelAddr);
+void WinsockInit(WSADATA* wsaData);
+void CreateSocket(SOCKET* aSocket);
+void InitAddresses(sockaddr_in* aReceiverAddr, sockaddr_in* aSenderAddr, sockaddr_in* aChannelAddr);
+void ValidatePortNumber(int32_t aPortNumber);
+void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr);
+
+
+// Channel functions
+void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed);
+void DeterministicNoise(int aCycle, char* aBuffer);
+void RunChannel();
+
 
 
