@@ -1,4 +1,4 @@
-#include "channel.h"
+#include "channel.h"s
 
 
 // ********************************************
@@ -39,35 +39,28 @@ void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockadd
     // Channel
 	memset(aChannelAddr, 0, sizeof(*aChannelAddr));
 	aChannelAddr->sin_family = AF_INET;
-	aChannelAddr->sin_addr.s_addr = htonl(INADDR_ANY);  //  Auto assign IP
-	aChannelAddr->sin_port = 0;                         // Auto assign port
+	aChannelAddr->sin_addr.s_addr = INADDR_ANY;                       //  Auto assign IP
+	aChannelAddr->sin_port = htons(0);                                // Auto assign port
 
 	// Reciever
 	memset(aReceiverAddr, 0, sizeof(*aReceiverAddr));
 	aReceiverAddr->sin_family = AF_INET;
-	aReceiverAddr->sin_addr.s_addr = aChannelAddr->sin_addr.s_addr; // IP address of the server
-	aReceiverAddr->sin_port = 0;                                    // Auto assign port
+	aReceiverAddr->sin_addr.s_addr = aChannelAddr->sin_addr.s_addr;   // IP address of the server
+	aReceiverAddr->sin_port = htons(0);                               // Auto assign port
 
 	// Sender
 	memset(aSenderAddr, 0, sizeof(*aSenderAddr));
 	aSenderAddr->sin_family = AF_INET;
-	aSenderAddr->sin_addr.s_addr =aChannelAddr->sin_addr.s_addr;   // IP address of the server
-	aSenderAddr->sin_port = 0;                                     // Auto assign port
+	aSenderAddr->sin_addr.s_addr =aChannelAddr->sin_addr.s_addr;      // IP address of the server
+	aSenderAddr->sin_port = htons(0);                                 // Auto assign port
+
+	std::cout << "Channel  -> Ip: " << inet_ntoa(aChannelAddr->sin_addr) << " port: " << ntohs(aChannelAddr->sin_port) << "\n";
+	std::cout << "Sender   -> Ip: " << inet_ntoa(aSenderAddr->sin_addr)  << " port: " << ntohs(aSenderAddr->sin_port) << "\n";
+	std::cout << "Reciever -> Ip: " << inet_ntoa(aReceiverAddr->sin_addr)<< " port: " << ntohs(aReceiverAddr->sin_port) << "\n";
 
 	return;
 }
 
-
-
-// Check the port value is in bounds, will throw an erro and exit if failed
-void ValidatePortNumber(int32_t aPortNumber)
-{
-	if ((aPortNumber < PORT_MIN_VALUE) || aPortNumber > PORT_MAX_VALUE)
-	{
-		std::cerr << "Port value is out of allowed bounds\n";
-		exit(1);
-	}
-}
 
 
 // Will be generating random noise with given seed 
@@ -98,7 +91,7 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 void DeterministicNoise(int aCycle, char* aBuffer)
 {
 	int counter = 0;
-	unsigned char mask;
+	long long int mask;
 	
 	for (int byte = 0; byte < PACKET_SIZE_BYTES; byte++)
 	{
@@ -111,6 +104,7 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 				gFlippedBits++;
 				counter = 0;                             // reset counter
 			}
+			mask <<= 1;
 			counter++;
 		}
 	}
@@ -125,6 +119,11 @@ void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr)
 		std::cerr << "Binding Failed. Exiting..\n" << WSAGetLastError();
 		exit(1);
 	}
+
+	listen(*aMainSocket, SOMAXCONN );
+	socklen_t len = sizeof(aServerAddr);
+	int result = getsockname(*aMainSocket, (SOCKADDR*)aServerAddr,&len);
+	std::cout<< "getsocket(): "<< result;
 }
 
 
@@ -137,7 +136,7 @@ void RunChannel()
 	sockaddr_in channelAddr;
 	WSADATA wsaData;                          // will contain the winsock data
 	
-	
+
 	// Initizliaing Winsock
 	WinsockInit(&wsaData);
 	CreateSocket(&MainSocket);
@@ -146,8 +145,6 @@ void RunChannel()
 
 
 	// main logic: Recieve a message, flip bits and send back to reciever
-
-
 	while (TRUE)
 	{
 		continue;
