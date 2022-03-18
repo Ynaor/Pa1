@@ -219,7 +219,7 @@ void create_hamming(int *data_buffer, int bits_read, int *frame_buffer, int chec
 
     // place the data bits in the frame_buffer; start entering data into frame_buffer from index 1 - min check_bits = 1
     int frame_buffer_index = 1;
-    for (int i = 0; i < bits_read - 1; i++) {
+    for (int i = 0; i < bits_read; i++) {
         if (frame_buffer[frame_buffer_index] == 1)
             frame_buffer_index++;
         frame_buffer[frame_buffer_index] = data_buffer[i];
@@ -234,7 +234,7 @@ void create_hamming(int *data_buffer, int bits_read, int *frame_buffer, int chec
         int res = 0;
         for (int j = 0; j < valid_bits_in_frame; j++) {
             if ((j + 1) & (check_bit_index + 1))
-                res = res ^ frame_buffer[i];
+                res = res ^ frame_buffer[j];
         }
         frame_buffer[check_bit_index] = res;
     }
@@ -313,7 +313,7 @@ void int_to_char(int* source, char* dest, int num_of_bytes) {
         ref_index = 8 * i;
         for (int j = 0; j < BITS_IN_BYTE; j++) {
             temp = source[j + ref_index];
-            temp *= pow(2, j + (int)BITS_IN_BYTE - 1);
+            temp *= pow(2, (int)BITS_IN_BYTE - 1 - j);
             curr_val += temp;
         }
         dest[i] = curr_val;

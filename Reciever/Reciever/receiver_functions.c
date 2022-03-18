@@ -4,8 +4,6 @@ Project:				Programming Assignment 1: Noisy Channel
 Project description:	Sender-Receiver communication through a noisy channel
 */
 
-#ifndef __SEND_RECIEVE_FUNCTIONS_H__
-#define __SEND_RECIEVE_FUNCTIONS_H__
 #ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #endif
@@ -32,7 +30,8 @@ static unsigned char write_mask = 0;
 static unsigned int total_bytes_written = 0;
 static unsigned int total_bytes_received = 0;
 static unsigned int next_bit_index = 0;         // next bit index in a byte, max val = 7;
-static char write_byte;                         // next byte to write to file
+static unsigned char write_byte = NULL;;        // next byte to write to file
+static unsigned int errors_corrected = 0;
 
 
 /// <summary>
@@ -40,8 +39,7 @@ static char write_byte;                         // next byte to write to file
 /// </summary>
 /// <param name="port">server port number</param>
 /// <returns>zero if successful, one otherwise</returns>
-int boot_client(char* address, int port)
-{
+int boot_client(char* address, int port){
     SOCKET main_socket = INVALID_SOCKET;
     g_ip = address;
     g_port = port;
@@ -67,6 +65,8 @@ int boot_client(char* address, int port)
         total_bytes_received = 0;
         total_bytes_written = 0;
         write_mask = 0;
+        write_byte = NULL;
+        errors_corrected = 0;
 
         main_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (main_socket == INVALID_SOCKET) {
@@ -90,43 +90,31 @@ int boot_client(char* address, int port)
             return 0;
         }
 
-        if (write_file(f_name, &main_socket)) {
+        if (communicate_server(f_name, &main_socket)) {
             return 1;
         }
 
         printf("received: %u bytes\n", total_bytes_received);
         printf("wrote: %u bytes\n", total_bytes_written);
-
+        printf("corrected: %u errors\n", errors_corrected);
     }
 }
 
 
-// assuming the number of DATA bits in a packet is a whole number of bytes!!!!!!!!!!!!!!!!!!!!!!!!!!!
-int write_file(char* file_name, SOCKET* p_socket) {
+int communicate_server(char* file_name, SOCKET* p_socket) {
     FILE* fp;
     if (fopen_s(&fp, file_name, "w")) {
         fprintf(stderr, "Error: failed to open file");
         return 1;
     }
 
-    //int packet_data_buffer[DATA_BYTES_IN_PACKET * BITS_IN_BYTE] = { 0 };
-    //int bits_in_packet_data_buffer = 0;
+    TransferResult_t recv_result;                       // recv_packet result
+    int recv_complete = 0;                              // 1 if all data received from server                 
 
-    //int frame_data_buffer[DATA_BYTES_IN_FRAME] = { 0 };
-    //int frame_buffer[BYTES_IN_FRAME] = { 0 };
+    int packet_size = 0;                                // number of bytes in received packet
+    int parsed_packet_bits = 0;                         // number of bits parsed from received packet
 
-    //int bits_read = 0;
-    //int bits_in_frame_buffer = 0;
-
-    //int hamming_check_bits = DEFAULT_HAMMING_BITS;
-
-    TransferResult_t recv_result;               // recv_packet result
-    int recv_complete = 0;                      // 1 if all data received from server                 
-
-    int packet_size = 0;                     // number of bytes in received packet
-    int parsed_packet_bits = 0;                 // number of bits parsed from received packet
-
-    int parsed_message[MAX_BITS_IN_PACKET] = { 0 };   // packet message parsed to bits
+    int parsed_message[MAX_BITS_IN_PACKET] = { 0 };     // packet message parsed to bits
 
 
     // each iteration is per packet
@@ -136,34 +124,93 @@ int write_file(char* file_name, SOCKET* p_socket) {
 
         recv_result = recv_packet(message, MAX_BYTES_IN_PACKET, &p_socket, &packet_size);
 
-        if (recv_result == TRNS_FAILED)
+        if (recv_result == TRNS_FAILED) {
+            if (!fclose(fp))
+                printf("Error: unable to close file\n");
             return 1;
+        }
 
-        if (recv_result == TRNS_DISCONNECTED)
-            recv_complete = 1;
+        
 
         get_bits(message, parsed_message, packet_size);
-        write_bytes(parsed_message, packet_size, &);
-
-
+        if (parse_packet(&fp, &parsed_message, packet_size)) {
+            if (!fclose(fp))
+                printf("Error: unable to close file\n");
+            return 1;
+        }
+        
+        if (recv_result == TRNS_DISCONNECTED) {
+            if (!fclose(fp)) {
+                printf("Error: unable to close file\n");
+                return 1;
+            }
+            return 0;
+        }
     }
 }
 
-void write_bytes(FILE* p_file, int* source, int packet_size) {
+int parse_packet(FILE* p_file, int* source, int packet_size) {
     int total_bits = packet_size * BITS_IN_BYTE;
     int frames = total_bits / BITS_IN_FRAME;
     int parsed_frame[DATA_BITS_IN_FRAME];
-    for (int i = 0; i < frames; i++) {
-        decode_hamming(&parsed_frame, &source + i * BITS_IN_FRAME);
+    int temp = 0;
 
+    for (int i = 0; i < frames; i++) {
+        decode_hamming(&parsed_frame, &source[i * BITS_IN_FRAME]);
+        for (int j = 0; j < DATA_BITS_IN_FRAME; j++) {
+            temp = parsed_frame[j];
+            temp *= pow(2, (int)BITS_IN_BYTE - 1 - next_bit_index);
+            write_byte += temp;
+            if (next_bit_index == 7) {
+                if (file_write_byte(p_file))
+                    return 1;
+                next_bit_index = 0;
+            }
+            else
+                next_bit_index++;
+        }
     }
 }
 
-void decode_hamming(int* encoded_data, int* data_buffer) {
 
+/// <summary>
+/// Decode Hamming
+/// </summary>
+/// <param name="data_buffer">Hamming interval data bits</param>
+/// <param name="bits_read">The actual number of data bits in data_buffer</param>
+void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
+    int error_index = 0;
+    for (int i = 0; i < BITS_IN_FRAME; i++) {
+        if (encoded_buffer[i] == 1)
+            error_index ^= (i + 1);
+    }
+
+    if (error_index != 0) {
+        encoded_buffer[error_index - 1] = !encoded_buffer[error_index - 1];
+        errors_corrected++;
+    }
+
+    int decoded_buffer_index = 0;
+    for (int i = 2; i < BITS_IN_FRAME; i++) {
+        if (ceil(log2(i + 1)) == floor(log2(i + 1)))
+            continue;
+        decoded_buffer[decoded_buffer_index] = encoded_buffer[i];
+    }
 }
 
-/*
+
+int file_write_byte(FILE* p_file) {
+    if (fputc(p_file, write_byte) != write_byte) {
+        printf("Error: could not write to file");
+        return 1;
+    }
+    total_bytes_written++;
+    write_byte = NULL;
+    return 0;
+}
+
+
+
 void get_bits(char* read_target, int* data_buffer[], int* packet_size) {
 
     int read_mask = 0;
@@ -179,108 +226,6 @@ void get_bits(char* read_target, int* data_buffer[], int* packet_size) {
             temp = read_mask & read_target[i];
             data_buffer[ref_index + j] = temp;
         }
-    }
-}
-
-
-/*
-
-        memset(packet_data_buffer, 0, sizeof(packet_data_buffer));
-        bits_in_packet_data_buffer = 0;
-
-        while (bits_in_packet_data_buffer < DATA_BITS_IN_PACKET) {
-
-            // read data of 1 frame
-            if (read_file_bits(&message, &frame_buffer, &bits_read) == -1) {
-                end_of_file = 1;
-                if (bits_read == 0)
-                    break;
-            }
-            hamming_check_bits = ceil(log2(bits_read));
-            bits_in_frame_buffer = bits_read + hamming_check_bits;
-            create_hamming(&frame_data_buffer, bits_read, &frame_buffer, hamming_check_bits);
-            concatenate_array(packet_data_buffer, bits_in_packet_data_buffer, frame_buffer, bits_in_frame_buffer);
-
-            bits_in_packet_data_buffer += bits_in_frame_buffer;
-
-            bits_read = 0;
-            memset(frame_data_buffer, 0, sizeof(frame_data_buffer));
-            memset(frame_buffer, 0, sizeof(frame_buffer));
-
-            if (end_of_file)
-                break;
-        }
-
-        // empty packet
-        if (bits_in_packet_data_buffer == 0)
-            break;
-
-        int_to_char(packet_data_buffer, message, BYTES_IN_PACKET);
-
-        if (send_packet(message, BYTES_IN_PACKET, p_socket)) {
-            if (!fclose(fp))
-                fprintf(stderr, "Error: failed to close file");
-            return 1;
-        }
-
-}
-
-
-/// <summary>
-/// Read file to create Hamming interval data
-/// </summary>
-/// <param name="read_target">char pointer to read bits from</param>
-/// <param name="buffer">data buffer in which to save the read bits</param>
-/// <returns>zero if MAX_DATA_BITS were read, one if reached end of file</returns>
-int read_bits(char **read_target, int* data_buffer[], int* bits_read) {
-    while (bits_read < DATA_BYTES_IN_FRAME) {
-        read_mask >>= 1;
-        if (read_mask == 0) {
-            if (fread(&read_byte, 1, 1, p_file) <= 0)
-                return -1;
-            total_bytes_read++;
-            read_mask = 1 << (BITS_IN_BYTE - 1);
-        }
-        data_buffer[*bits_read] = read_mask & read_byte;
-
-        bits_read++;
-    }
-    return 0;
-}
-
-
-/// <summary>
-/// Decode Hamming
-/// </summary>
-/// <param name="data_buffer">Hamming interval data bits</param>
-/// <param name="bits_read">The actual number of data bits in data_buffer</param>
-void decode_hamming(int* data_buffer, int bits_read, int* frame_buffer, int check_bits) {
-
-    // place the check bits in the packet_buffer array and initialize to 1
-    for (int i = 0; i < check_bits; i++) {
-        frame_buffer[(int)pow(2, i) - 1] = 1;
-    }
-
-    // place the data bits in the frame_buffer; start entering data into frame_buffer from index 1 - min check_bits = 1
-    int frame_buffer_index = 1;
-    for (int i = 0; i < bits_read - 1; i++) {
-        if (frame_buffer[frame_buffer_index] == 1)
-            frame_buffer_index++;
-        frame_buffer[frame_buffer_index] = data_buffer[i];
-        frame_buffer_index++;
-    }
-
-    int valid_bits_in_frame = check_bits + bits_read;
-
-    // set the values of the hamming bits:
-    for (int i = 0; i < check_bits; i++) {
-        int check_bit_index = (int)pow(2, i) - 1;
-        int res = 0;
-        for (int j = 0; j < valid_bits_in_frame; j++) {
-            if ((j + 1) & (check_bit_index + 1))
-                res = res ^ frame_buffer[i];
-        }
-        frame_buffer[check_bit_index] = res;
     }
 }
 
@@ -341,57 +286,3 @@ TransferResult_t recv_packet(char* buffer, const int packet_length, SOCKET* p_co
 
     return TRNS_SUCCEEDED;
 }
- 
-    
-
-    
-
-        
-
-        
-
-            
-          
-
-
-
-
-
-/// <summary>
-/// Merge two arrays from a given position in the first array
-/// </summary>
-/// <param name="basa_array">The array to have another array added to</param>
-/// <param name="last_index">The index in the base_array that the second_array will be added to</param>
-/// <param name="seconed_array">The array that is added</param>
-/// <param name="size">The number of elements of second_array to be added to base_array</param>
-void concatenate_array(int* basa_array, int last_index, int* seconed_array, int size) {
-    for (int i = 0; i < size; i++) {
-        basa_array[last_index + i] = seconed_array[i];
-    }
-}
-
-
-/// <summary>
-/// Converts an array of ints to chars by calculating the decimal value of every 8 consecutive bits
-/// </summary>
-/// <param name="source">source int array</param>
-/// <param name="dest">destination char array</param>
-/// <param name="num_of_bytes">size of char array</param>
-/// <returns>send result</returns>
-void int_to_char(int* source, char* dest, int num_of_bytes) {
-    int temp = 0;
-    int curr_val = 0;
-    int ref_index = 0;
-
-    for (int i = 0; i < (num_of_bytes); i++) {
-        curr_val = 0;
-        ref_index = 8 * i;
-        for (int j = 0; j < BITS_IN_BYTE; j++) {
-            temp = source[j + ref_index];
-            temp *= pow(2, j + (int)BITS_IN_BYTE - 1);
-            curr_val += temp;
-        }
-        dest[i] = curr_val;
-    }
-}#pragma once
-*/
