@@ -19,9 +19,6 @@ Project description:	Sender-Receiver communication through a noisy channel
 //#include <WS2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
 
-# define FUNCTION_SUCCESS 0
-# define FUNCTION_ERROR 1
-
 
 // Bounds (when possible)
 #define BITS_IN_BYTE			8
@@ -34,30 +31,6 @@ Project description:	Sender-Receiver communication through a noisy channel
 #define BYTES_IN_PACKET			FRAMES_IN_PACKET * BYTES_IN_FRAME				// Max data in packet, size in bytes
 #define DATA_BYTES_IN_PACKET	FRAMES_IN_PACKET * DATA_BYTES_IN_FRAME			// Max packet size in bytes
 #define MAX_FN					300												// Define max file name length to 300 (includin extentions) 	
-
-
-#define MAX_ERROR_MESSAGE 200	// Custom errors
-
-// communication settings
-#define SERVER_WAIT_MS 15000
-#define HUMAN_WAIT_MS 600000
-#define SHUTOWN_WAIT_MS 15000
-#define PEEK_WAIT 100
-
-
-
-
-// communication messages
-typedef enum {
-	CLIENT_REQUEST, SERVER_APPROVED, SERVER_DENIED,
-	CLIENT_DISCONNECT
-} message_type;
-
-/*typedef struct packet
-{
-} packet;
-*/
-typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED } TransferResult_t;
 
 #endif
 
