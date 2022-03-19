@@ -5,7 +5,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 //includes 
-#include "winsock2.h"
+#include <winsock2.h>
 #include <ws2def.h>
 #include <cstdint>
 #include <iostream>
@@ -13,12 +13,9 @@
 #include <random>
 #include <ws2tcpip.h>
 
-int sizeof_sockaddr = sizeof(struct sockaddr);
-
 
 // defines
-#define PORT_MIN_VALUE      0
-#define PORT_MAX_VALUE      65535  //2^16 - 1
+#define RANDOM_PORT         0
 #define SINGLE_BIT_MASK		1
 #define BITS_IN_BYTE        8
 #define FRAME_SIZE_BYTES	31	   // "frame" is a collection of 20 31 byte collection (8 bits * 31 bits per chuck)
@@ -28,7 +25,7 @@ int sizeof_sockaddr = sizeof(struct sockaddr);
 #define BUFFER_SIZE_BITS    4960   // 620 * 8 bits per byte
 #define TWO_POWER_FIFTEEN   32768  // 2^15
 #define TWO_POWER_SIXTEEN   65536  // 2^16
-#define SIZE_OF_SOCKADDR    sizeof_sockaddr 
+#define HOSTNAME_MAX_LEN    350
 
 
 
@@ -43,7 +40,7 @@ void BindServer(SOCKET* aMainSocket, sockaddr_in* aChannelAddr);
 // Channel functions
 void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed);
 void DeterministicNoise(int aCycle, char* aBuffer);
-void RunChannel();
-
+void getHostIp(in_addr* aHostAddr);
+SOCKET newSocket(in_addr aIPAddress, sockaddr_in* aClientAddr, int* aAutoPort, BOOL aIsListen);
 
 

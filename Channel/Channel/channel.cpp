@@ -5,62 +5,6 @@
 // **********  Socket Handling   **************
 // ********************************************
 
-// Global variables
-int gFlippedBits = 0;
-
-
-
-// Initializing the winsock, will throw an error and exit if failed
-void WinsockInit(WSADATA *wsaData)
-{
-	const auto api_ver = MAKEWORD(2, 2);
-	if (WSAStartup(api_ver, wsaData) != NO_ERROR)
-	{
-		std::cerr << "Winsock initialization failed\n" << WSAGetLastError();
-		exit(1);
-	}
-}
-
-
-void CreateSocket(SOCKET* aSocket)
-{
-	*aSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (*aSocket == INVALID_SOCKET)
-	{
-		std::cerr << "Could not create a new socket\n" << WSAGetLastError();
-		exit(1);
-	}
-}
-
-
-void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockaddr_in *aChannelAddr, sockaddr_in *aUnknownAddr)
-{
-
-    // Channel
-	memset(aChannelAddr, 0, sizeof(*aChannelAddr));
-	aChannelAddr->sin_family = AF_INET;
-	aChannelAddr->sin_addr.s_addr = INADDR_ANY;                       //  Auto assign IP
-	aChannelAddr->sin_port = htons(0);                                // Auto assign port
-
-	// Reciever
-	memset(aReceiverAddr, 0, sizeof(*aReceiverAddr));
-	aReceiverAddr->sin_family = AF_INET;
-	aReceiverAddr->sin_addr.s_addr = aChannelAddr->sin_addr.s_addr;   // IP address of the server
-	aReceiverAddr->sin_port = htons(0);                               // Auto assign port
-
-	// Sender
-	memset(aSenderAddr, 0, sizeof(*aSenderAddr));
-	aSenderAddr->sin_family = AF_INET;
-	aSenderAddr->sin_addr.s_addr =aChannelAddr->sin_addr.s_addr;      // IP address of the server
-	aSenderAddr->sin_port = htons(0);                                 // Auto assign port
-
-	// Unkown
-	memset(aUnknownAddr, 0, sizeof(*aUnknownAddr));
-
-	return;
-}
-
-
 
 // Will be generating random noise with given seed 
 void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
@@ -79,7 +23,7 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 			if (randomNumber < aProbability)
 			{
 				aBuffer[byte] = aBuffer[byte] ^ mask;    // flip the desired bit
-				gFlippedBits++;
+				//gFlippedBits++;
 			}
 
 			mask <<= 1; // moving mask bit to the left
@@ -100,7 +44,7 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 			if (counter == aCycle)
 			{
 				aBuffer[byte] = aBuffer[byte] ^ mask;    // flip the desired bit when we counter == cycle
-				gFlippedBits++;
+				//gFlippedBits++;
 				counter = 0;                             // reset counter
 			}
 			mask <<= 1;
@@ -109,84 +53,75 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 	}
 }
 
-void BindServer(SOCKET* aMainSocket, sockaddr_in* aChannelAddr)
-{
-	auto bindResult = bind(*aMainSocket, (SOCKADDR*)aChannelAddr, sizeof(*aChannelAddr));
 
-	if (bindResult == SOCKET_ERROR)
+void WinsockInit(WSADATA *wsaData)
+{
+	const auto api_ver = MAKEWORD(2, 2);
+	if (WSAStartup(api_ver, wsaData) != NO_ERROR)
 	{
-		std::cerr << "Binding Failed. Exiting..\n" << WSAGetLastError();
+		std::cerr << "Winsock initialization failed\n" << WSAGetLastError();
 		exit(1);
 	}
-
-	/*
-	listen(*aMainSocket, SOMAXCONN );
-	SOCKET AcceptSocket = accept(*aMainSocket, NULL, NULL );
-	
-	int len = sizeof(aChannelAddr);
-	getsockname(AcceptSocket, (SOCKADDR*)aChannelAddr,&len);
-	*/
-	
 }
 
 
-void RunChannel()
+void getHostIp(in_addr *aHostAddr)
 {
+	WSADATA wsaData;
+	char hostName[HOSTNAME_MAX_LEN];
+	hostent* hostIpAddr;
+	in_addr hostInetAddr;
+
 	
-	SOCKET MainSocket = INVALID_SOCKET;
-	sockaddr_in receiverAddr;
-	sockaddr_in senderAddr;
-	sockaddr_in channelAddr;
-	sockaddr_in unkownAddr;                   // wil be used to determine who sent a message
-
-
-	WSADATA wsaData;                          // will contain the winsock data
-	fd_set fd_readerSet;
-	timeval timeVal;
-	
-	char messageBuffer[BUFFER_SIZE_BYTES];
-
-	// Initizliaing Winsock
 	WinsockInit(&wsaData);
-	CreateSocket(&MainSocket);
-	InitAddresses(&receiverAddr, &senderAddr, &channelAddr, &unkownAddr);
-	BindServer(&MainSocket, &channelAddr);
+	gethostname(hostName, HOSTNAME_MAX_LEN);
+	hostIpAddr = gethostbyname(hostName);
+	aHostAddr->s_addr = (u_long)(hostIpAddr->h_addr_list[0]);
+}
 
+SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
+{
+	SOCKET s;
+	WSADATA wsaData;
 
+	// set socket parameters
+	aClientAddr->sin_family = AF_INET;
+	aClientAddr->sin_port = RANDOM_PORT;
+	aClientAddr->sin_addr.s_addr = inet_addr(inet_ntoa(aIPAddress));
 
-	// main logic: Recieve a message, flip bits and send back to reciever
-	while (TRUE)
+	WinsockInit(&wsaData);
+
+	// create the new socket
+	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{
-		memset(messageBuffer, 0, sizeof(messageBuffer));
-		FD_ZERO(&fd_readerSet);
-		FD_SET(MainSocket, &fd_readerSet);
-
-		// setting timing configuration - time waiting for messages
-		timeVal.tv_sec = 2;  
-		timeVal.tv_usec = 0;
-
-		// select - ready to get new messages
-		if (select(0, &fd_readerSet, NULL, NULL, &timeVal) == SOCKET_ERROR)
-		{
-			std::cerr << "Error in file descriptor select() \n";
-			exit(1);
-		}
-
-		// get messages from unkown address - will check who sent later on
-		if (recvfrom(MainSocket, messageBuffer, sizeof(messageBuffer), 0, (SOCKADDR*)&unkownAddr, &SIZE_OF_SOCKADDR) < 0)
-		{
-			std::cerr << "Encountered an error while recieving bytes \n";
-			exit(1);
-		}
-
-		// TODO: complete this line and understand functionallity 
-		if ((unkownAddr.sin_port == receiverAddr.sin_port) && unkownAddr.sin_addr.S_un.S_addr == receiverAddr.sin_addr.S_un.S_addr)
-		{
-
-		}
-
-
+		std::cerr << "Could not create TCP socket\n" << WSAGetLastError();
+		exit(1);
 	}
 
+	// if socket is for listening: will handle it correctly
+	if (aIsListen)
+	{
+		// bind
+		auto bindRes = bind(s, (SOCKADDR*)aClientAddr, sizeof(*aClientAddr));
+		if (bindRes)
+		{
+			std::cerr << "Error while binding new socket\n" << WSAGetLastError();
+			exit(1);
+		}
 
+		//listen
+		auto listenRes = listen(s, 1);
+		if (listenRes)
+		{
+			std::cerr << "Could not listen to socket\n" << WSAGetLastError();
+			exit(1);
+		}
+	}
+
+	// set the auto selected port from operating system
+	int addrSize = sizeof(*aClientAddr);
+	getsockname(s, (SOCKADDR*)aClientAddr, &addrSize);
+	*aAutoPort = ntohs(aClientAddr->sin_port);
+
+	return s;
 }
