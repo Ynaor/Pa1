@@ -139,7 +139,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="sender.cpp" />
     <ClCompile Include="sender.c" />
     <ClCompile Include="sender_functions.c" />
   </ItemGroup>

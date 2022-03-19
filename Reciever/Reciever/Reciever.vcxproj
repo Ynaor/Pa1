@@ -139,7 +139,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="reciever.cpp" />
+    <ClCompile Include="receiver.c" />
+    <ClCompile Include="receiver_functions.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HardCodedData.h" />
+    <ClInclude Include="receiver_functions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

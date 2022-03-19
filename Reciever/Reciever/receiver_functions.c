@@ -30,7 +30,7 @@ static unsigned char write_mask = 0;
 static unsigned int total_bytes_written = 0;
 static unsigned int total_bytes_received = 0;
 static unsigned int next_bit_index = 0;         // next bit index in a byte, max val = 7;
-static unsigned char write_byte = NULL;;        // next byte to write to file
+static unsigned char write_byte = 0;;        // next byte to write to file
 static unsigned int errors_corrected = 0;
 
 
@@ -65,7 +65,7 @@ int boot_client(char* address, int port){
         total_bytes_received = 0;
         total_bytes_written = 0;
         write_mask = 0;
-        write_byte = NULL;
+        write_byte = 0;
         errors_corrected = 0;
 
         main_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -115,20 +115,17 @@ int communicate_server(char* file_name, SOCKET* p_socket) {
     }
 
     TransferResult_t recv_result;                       // recv_packet result
-    int recv_complete = 0;                              // 1 if all data received from server                 
 
     int packet_size = 0;                                // number of bytes in received packet
-    int parsed_packet_bits = 0;                         // number of bits parsed from received packet
 
     int parsed_message[MAX_BITS_IN_PACKET] = { 0 };     // packet message parsed to bits
 
+    char message[MAX_BYTES_IN_PACKET];
 
     // each iteration is per packet
     while (TRUE) {
 
-        char message[MAX_BYTES_IN_PACKET];
-
-        recv_result = recv_packet(message, MAX_BYTES_IN_PACKET, &p_socket, &packet_size);
+        recv_result = recv_packet(message, MAX_BYTES_IN_PACKET, p_socket, &packet_size);
 
         if (recv_result == TRNS_FAILED) {
             if (!fclose(fp))
@@ -136,10 +133,9 @@ int communicate_server(char* file_name, SOCKET* p_socket) {
             return 1;
         }
 
-        
 
         get_bits(message, parsed_message, packet_size);
-        if (parse_packet(&fp, &parsed_message, packet_size)) {
+        if (parse_packet(fp, parsed_message, packet_size)) {
             if (!fclose(fp))
                 printf("Error: unable to close file\n");
             return 1;
@@ -171,10 +167,10 @@ int parse_packet(FILE* p_file, int* source, int packet_size) {
     int temp = 0;
 
     for (int i = 0; i < frames; i++) {
-        decode_hamming(&parsed_frame, &source[i * BITS_IN_FRAME]);
+        decode_hamming(parsed_frame, &source[i * BITS_IN_FRAME]);
         for (int j = 0; j < DATA_BITS_IN_FRAME; j++) {
             temp = parsed_frame[j];
-            temp *= pow(2, (int)BITS_IN_BYTE - 1 - next_bit_index);
+            temp *= pow(2, (double)BITS_IN_BYTE - 1 - next_bit_index);
             write_byte += temp;
             if (next_bit_index == 7) {
                 if (file_write_byte(p_file))
@@ -208,7 +204,7 @@ void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
 
     int decoded_buffer_index = 0;
     for (int i = 2; i < BITS_IN_FRAME; i++) {
-        if (ceil(log2(i + 1)) == floor(log2(i + 1)))
+        if (ceil(log2((double)i + 1)) == floor(log2((double)i + 1)))
             continue;
         decoded_buffer[decoded_buffer_index] = encoded_buffer[i];
     }
@@ -221,12 +217,12 @@ void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
 /// <param name="p_file">pointer to file</param>
 /// <returns>zero if successful, one otherwise</returns>
 int file_write_byte(FILE* p_file) {
-    if (fputc(p_file, write_byte) != write_byte) {
+    if (fputc(write_byte, p_file) != write_byte) {
         printf("Error: could not write to file");
         return 1;
     }
     total_bytes_written++;
-    write_byte = NULL;
+    write_byte = 0;
     return 0;
 }
 
@@ -236,7 +232,7 @@ int file_write_byte(FILE* p_file) {
 /// </summary>
 /// <param name="p_file">pointer to file</param>
 /// <returns>zero if successful, one otherwise</returns>
-void get_bits(char* read_target, int* data_buffer[], int* packet_size) {
+void get_bits(char* read_target, int* data_buffer, int packet_size) {
 
     int read_mask = 0;
     int temp;
