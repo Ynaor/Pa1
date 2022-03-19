@@ -11,6 +11,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="sender.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="sender.c">
       <Filter>Source Files</Filter>
     </ClCompile>
