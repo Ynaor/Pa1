@@ -30,7 +30,7 @@ static unsigned char write_mask = 0;
 static unsigned int total_bytes_written = 0;
 static unsigned int total_bytes_received = 0;
 static unsigned int next_bit_index = 0;         // next bit index in a byte, max val = 7;
-static unsigned char write_byte = 0;;        // next byte to write to file
+static unsigned char write_byte = 0;        // next byte to write to file
 static unsigned int errors_corrected = 0;
 
 
