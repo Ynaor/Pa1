@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 
 	int port = atoi(argv[2]);
 
-	if (port< PORT_MIN_VALUE || port>PORT_MAX_VALUE) {
+	if (port < PORT_MIN_VALUE || port > PORT_MAX_VALUE) {
 		printf("ERROR: invalid port number\n");
 		exit(1);
 	}

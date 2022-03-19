@@ -54,6 +54,7 @@ Project description:	Sender-Receiver communication through a noisy channel
 
 #include "HardCodedData.h"
 
+
 /// <summary>
 /// Boot up the client
 /// </summary>
@@ -63,12 +64,12 @@ int boot_client(char* address, int port);
 
 
 /// <summary>
-/// Creates and sends the packets from a given file.
+/// send file
 /// </summary>
-/// <param name="file_name">file name to be read</param>
-/// <param name="p_connection_socket">pointer to socket</param>
+/// <param name="file_name">file name</param>
+/// <param name="p_socket">pointer to socket</param>
 /// <returns>zero if successful, one otherwise</returns>
-int generate_packets(char* file_name, SOCKET* p_connection_socket);
+int send_file(char* file_name, SOCKET* p_socket);
 
 
 /// <summary>
@@ -76,8 +77,9 @@ int generate_packets(char* file_name, SOCKET* p_connection_socket);
 /// </summary>
 /// <param name="p_file">file pointer</param>
 /// <param name="buffer">data buffer in which to save the read bits</param>
-/// <returns>zero if MAX_DATA_BITS were read, neg one if reached end of file</returns>
-int read_file_bits(FILE* p_file, int* data_buffer[], int* bits_read);
+/// <returns>zero if MAX_DATA_BITS were read, one if reached end of file</returns>
+int read_file_bits(FILE* p_file, int* data_buffer, int* bits_read);
+
 
 /// <summary>
 /// Create Hamming interval by adding the hamming check bits to the data bits; this function does not need to have a specific file size
@@ -93,7 +95,7 @@ void create_hamming(int* data_buffer, int bits_read, int* frame_buffer, int chec
 /// <param name="buffer">string buffer</param>
 /// <param name="message_len">length of the string</param>
 /// <param name="p_connection_socket">pointer to the socket</param>
-/// <returns>zero if the packet was sent successfully, 1 otherwise</returns>
+/// <returns>send result</returns>
 int send_packet(char* buffer, const int message_len, SOCKET* p_connection_socket);
 
 
