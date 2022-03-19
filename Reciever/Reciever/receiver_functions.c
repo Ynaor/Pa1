@@ -101,6 +101,12 @@ int boot_client(char* address, int port){
 }
 
 
+/// <summary>
+/// Receive data from server decode and write to file
+/// </summary>
+/// <param name="file_name">file name</param>
+/// <param name="p_socket">Socket pointer</param>
+/// <returns>zero if successful, one otherwise</returns>
 int communicate_server(char* file_name, SOCKET* p_socket) {
     FILE* fp;
     if (fopen_s(&fp, file_name, "w")) {
@@ -149,7 +155,16 @@ int communicate_server(char* file_name, SOCKET* p_socket) {
     }
 }
 
+
+/// <summary>
+/// parse packet - decode and write data bits to file
+/// </summary>
+/// <param name="p_file">pointer to file </param>
+/// <param name="source">Source </param>
+/// <param name="packet_size">The size of packet in bytes</param>
+/// <returns>zero if successful, one otherwise</returns>
 int parse_packet(FILE* p_file, int* source, int packet_size) {
+    
     int total_bits = packet_size * BITS_IN_BYTE;
     int frames = total_bits / BITS_IN_FRAME;
     int parsed_frame[DATA_BITS_IN_FRAME];
@@ -170,14 +185,15 @@ int parse_packet(FILE* p_file, int* source, int packet_size) {
                 next_bit_index++;
         }
     }
+    return 0;
 }
 
 
 /// <summary>
 /// Decode Hamming
 /// </summary>
-/// <param name="data_buffer">Hamming interval data bits</param>
-/// <param name="bits_read">The actual number of data bits in data_buffer</param>
+/// <param name="encoded_buffer">Hamming encoded data</param>
+/// <param name="decoded_buffer">Decoded data</param>
 void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
     int error_index = 0;
     for (int i = 0; i < BITS_IN_FRAME; i++) {
@@ -199,6 +215,11 @@ void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
 }
 
 
+/// <summary>
+/// Write byte in write_byte global var to file
+/// </summary>
+/// <param name="p_file">pointer to file</param>
+/// <returns>zero if successful, one otherwise</returns>
 int file_write_byte(FILE* p_file) {
     if (fputc(p_file, write_byte) != write_byte) {
         printf("Error: could not write to file");
@@ -210,7 +231,11 @@ int file_write_byte(FILE* p_file) {
 }
 
 
-
+/// <summary>
+/// save a given char as an array of bits
+/// </summary>
+/// <param name="p_file">pointer to file</param>
+/// <returns>zero if successful, one otherwise</returns>
 void get_bits(char* read_target, int* data_buffer[], int* packet_size) {
 
     int read_mask = 0;
