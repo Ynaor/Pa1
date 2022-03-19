@@ -30,38 +30,6 @@ Project description:	Sender-Receiver communication through a noisy channel
 /// <returns>zero if successful, one otherwise</returns>
 int boot_client(char* address, int port);
 
-/*
-Authors:				Shachar Cohen (313416521) & Yuval Naor (?????????)
-Project:				Programming Assignment 1: Noisy Channel
-Project description:	Sender-Receiver communication through a noisy channel
-*/
-
-#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <WinSock2.h>
-#include <Windows.h>
-#include <WS2tcpip.h>
-#include <math.h>
-#pragma comment(lib, "Ws2_32.lib")
-
-#include "HardCodedData.h"
-
-
-/// <summary>
-/// Boot up the client
-/// </summary>
-/// <param name="port">server port number</param>
-/// <returns>zero if successful, one otherwise</returns>
-int boot_client(char* address, int port);
-
 
 /// <summary>
 /// send file
@@ -82,11 +50,11 @@ int read_file_bits(FILE* p_file, int* data_buffer, int* bits_read);
 
 
 /// <summary>
-/// Create Hamming interval by adding the hamming check bits to the data bits; this function does not need to have a specific file size
+/// Create Hamming block by adding the hamming check bits to the data bits
 /// </summary>
-/// <param name="data_buffer">Hamming interval data bits</param>
-/// <param name="bits_read">The actual number of data bits in data_buffer</param>
-void create_hamming(int* data_buffer, int bits_read, int* frame_buffer, int check_bits);
+/// <param name="data_buffer">Hamming block data bits</param>
+/// <param name="frame_buffer">hamming block</param>
+void stupid_hamming(int* data_buffer, int* frame_buffer);
 
 
 /// <summary>
@@ -117,3 +85,4 @@ void concatenate_array(int* basa_array, int last_index, int* seconed_array, int 
 /// <param name="num_of_bytes">size of char array</param>
 /// <returns>send result</returns>
 void int_to_char(int* source, char* dest, int num_of_bytes);
+
