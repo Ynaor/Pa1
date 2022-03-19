@@ -65,34 +65,30 @@ void WinsockInit(WSADATA *wsaData)
 
 void getHostIp(in_addr *aHostAddr)
 {
-	//WSADATA wsaData;
 	char hostName[HOSTNAME_MAX_LEN + 1] = {0};
-	hostent* hostIpAddr;
-
+	struct hostent* hostIpAddr;	
 	
-	//WinsockInit(&wsaData);
-	gethostname(hostName, HOSTNAME_MAX_LEN - 1);
+	// With the Assist of Ido Barak
+	if (gethostname(hostName, HOSTNAME_MAX_LEN - 1) != 0)
+	{
+		std::cerr << "Error getting local HostName \n";
+		exit(1);
+	}
+
 	hostIpAddr = gethostbyname(hostName);
-	aHostAddr->s_addr = (u_long)(hostIpAddr->h_addr_list[0]);
-	/*
-
-	if (gethostname(hostName, HOSTNAME_MAX_LEN-1) != 0)
+	if (hostIpAddr == NULL)
 	{
-		std::cerr << "Can't retrieve local hostname\n";
+	std::cerr << "Error getting local IPv4 address \n";
+		exit(1);
 	}
 
-	if ((hostIpAddr = gethostbyname(hostName)) == NULL)
-	{
-		std::cerr << "Can't retrieve local IPv4 Address\n";
-	}
-	 memcpy(aHostAddr,hostIpAddr->h_addr_list[0], sizeof(in_addr));
-	 */
+	// set the host ip address for printing
+	memcpy(aHostAddr, hostIpAddr->h_addr_list[0], sizeof(in_addr));
  }
 
 SOCKET newSocket(sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
 {
 	SOCKET s;
-	WSADATA wsaData;
 
 	// set socket parameters
 	aClientAddr->sin_family = AF_INET;
@@ -105,8 +101,6 @@ SOCKET newSocket(sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
 	std::cout <<"Local IP: " << inet_ntoa(aClientAddr->sin_addr) << "\n";
 	#endif
 	
-
-	WinsockInit(&wsaData);
 
 	// create the new socket
 	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)

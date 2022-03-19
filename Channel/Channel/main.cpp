@@ -12,6 +12,10 @@ int main(int argc, char* argv[])
 	int noiseSeed;
 	int noiseLevel;
 	char continueString[4];
+	sockaddr_in ReceiverAddr;
+	sockaddr_in SenderAddr;
+	in_addr ChannelIpAddress;
+
 
 	// Buffer size - will increase if file size is too large for current buffer
 	char *messageBuffer = (char*)malloc(sizeof(char)*BUFFER_SIZE_BYTES + 1);
@@ -29,10 +33,8 @@ int main(int argc, char* argv[])
 	}
 
 
-	sockaddr_in ReceiverAddr;
-	sockaddr_in SenderAddr;
-	in_addr ChannelIpAddress;
-
+	WSADATA wsadata;
+	WinsockInit(&wsadata);
 
 
 	while (TRUE)
@@ -64,8 +66,6 @@ int main(int argc, char* argv[])
 		#ifdef _DEBUG
 		std::cout << "Recieved " << bytesRecieved << " bytes\n ";
 		#endif
-	
-		
 	
 		
 		// Adding noise according to user specified flag
