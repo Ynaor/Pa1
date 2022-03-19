@@ -37,14 +37,15 @@ int main(int argc, char* argv[])
 
 	while (TRUE)
 	{
+		SOCKET SenderListenSock = newSocket(&SenderAddr, &senderPort, TRUE);
+		SOCKET RecieverListenSock = newSocket(&ReceiverAddr, &recieverPort, TRUE);
+
 		getHostIp(&ChannelIpAddress); // getting the current host ip address -> will be set as server ip
-		SOCKET SenderListenSock = newSocket(ChannelIpAddress, &SenderAddr, &senderPort, TRUE);
-		SOCKET RecieverListenSock = newSocket(ChannelIpAddress, &ReceiverAddr, &recieverPort, TRUE);
 
 		// printing connection info for the user
-		std::cout << "sender socket: IP address = " << inet_ntoa(ReceiverAddr.sin_addr);
+		std::cout << "sender socket: IP address = " << inet_ntoa(ChannelIpAddress);
 		std::cout << " port = " << senderPort << "\n";
-		std::cout << "Reciever socket: IP address = " << inet_ntoa(SenderAddr.sin_addr);
+		std::cout << "Reciever socket: IP address = " << inet_ntoa(ChannelIpAddress);
 		std::cout << " port = " << recieverPort << "\n";
 
 		// accepting connection for data send/recieve

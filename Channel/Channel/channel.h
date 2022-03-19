@@ -49,5 +49,4 @@ void DeterministicNoise(int aCycle, char* aBuffer, int* aFlippedBits);
 void getHostIp(in_addr* aHostAddr);
 
 // create a new socket and bind it if this socket is for listening
-SOCKET newSocket(in_addr aIPAddress, sockaddr_in* aClientAddr, int* aAutoPort, BOOL aIsListen);
-
+SOCKET newSocket(sockaddr_in* aClientAddr, int* aAutoPort, BOOL aIsListen);

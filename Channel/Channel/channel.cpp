@@ -65,19 +65,31 @@ void WinsockInit(WSADATA *wsaData)
 
 void getHostIp(in_addr *aHostAddr)
 {
-	WSADATA wsaData;
-	char hostName[HOSTNAME_MAX_LEN];
+	//WSADATA wsaData;
+	char hostName[HOSTNAME_MAX_LEN + 1] = {0};
 	hostent* hostIpAddr;
 
 	
-	WinsockInit(&wsaData);
-	gethostname(hostName, HOSTNAME_MAX_LEN);
+	//WinsockInit(&wsaData);
+	gethostname(hostName, HOSTNAME_MAX_LEN - 1);
 	hostIpAddr = gethostbyname(hostName);
 	aHostAddr->s_addr = (u_long)(hostIpAddr->h_addr_list[0]);
+	/*
 
-}
+	if (gethostname(hostName, HOSTNAME_MAX_LEN-1) != 0)
+	{
+		std::cerr << "Can't retrieve local hostname\n";
+	}
 
-SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
+	if ((hostIpAddr = gethostbyname(hostName)) == NULL)
+	{
+		std::cerr << "Can't retrieve local IPv4 Address\n";
+	}
+	 memcpy(aHostAddr,hostIpAddr->h_addr_list[0], sizeof(in_addr));
+	 */
+ }
+
+SOCKET newSocket(sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
 {
 	SOCKET s;
 	WSADATA wsaData;
@@ -87,7 +99,7 @@ SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, B
 	aClientAddr->sin_port = RANDOM_PORT;
 	
 	#ifndef _DEBUG
-	aClientAddr->sin_addr = aIPAddress;
+	aClientAddr->sin_addr.s_addr = INADDR_ANY;
 	#else
 	aClientAddr->sin_addr.s_addr = inet_addr("127.0.0.1");
 	std::cout <<"Local IP: " << inet_ntoa(aClientAddr->sin_addr) << "\n";
