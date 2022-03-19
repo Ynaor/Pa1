@@ -7,7 +7,7 @@
 
 
 // Will be generating random noise with given seed 
-void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
+void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *aFlippedBits)
 {
 	unsigned char mask; 
 	std::default_random_engine generator(0); 
@@ -23,7 +23,7 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 			if (randomNumber < aProbability)
 			{
 				aBuffer[byte] = aBuffer[byte] ^ mask;    // flip the desired bit
-				//gFlippedBits++;
+				(*aFlippedBits)++;
 			}
 
 			mask <<= 1; // moving mask bit to the left
@@ -31,7 +31,7 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 	}
 }
 
-void DeterministicNoise(int aCycle, char* aBuffer)
+void DeterministicNoise(int aCycle, char* aBuffer, int *aFlippedBits)
 {
 	int counter = 0;
 	unsigned char mask;
@@ -44,7 +44,7 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 			if (counter == aCycle)
 			{
 				aBuffer[byte] = aBuffer[byte] ^ mask;    // flip the desired bit when we counter == cycle
-				//gFlippedBits++;
+				(*aFlippedBits)++;
 				counter = 0;                             // reset counter
 			}
 			mask <<= 1;
@@ -52,7 +52,6 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 		}
 	}
 }
-
 
 void WinsockInit(WSADATA *wsaData)
 {
@@ -64,19 +63,18 @@ void WinsockInit(WSADATA *wsaData)
 	}
 }
 
-
 void getHostIp(in_addr *aHostAddr)
 {
 	WSADATA wsaData;
 	char hostName[HOSTNAME_MAX_LEN];
 	hostent* hostIpAddr;
-	in_addr hostInetAddr;
 
 	
 	WinsockInit(&wsaData);
 	gethostname(hostName, HOSTNAME_MAX_LEN);
 	hostIpAddr = gethostbyname(hostName);
 	aHostAddr->s_addr = (u_long)(hostIpAddr->h_addr_list[0]);
+
 }
 
 SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
@@ -87,7 +85,14 @@ SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, B
 	// set socket parameters
 	aClientAddr->sin_family = AF_INET;
 	aClientAddr->sin_port = RANDOM_PORT;
-	aClientAddr->sin_addr.s_addr = inet_addr(inet_ntoa(aIPAddress));
+	
+	#ifndef _DEBUG
+	aClientAddr->sin_addr = aIPAddress;
+	#else
+	aClientAddr->sin_addr.s_addr = inet_addr("127.0.0.1");
+	std::cout <<"Local IP: " << inet_ntoa(aClientAddr->sin_addr) << "\n";
+	#endif
+	
 
 	WinsockInit(&wsaData);
 
@@ -102,7 +107,7 @@ SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, B
 	if (aIsListen)
 	{
 		// bind
-		auto bindRes = bind(s, (SOCKADDR*)aClientAddr, sizeof(*aClientAddr));
+		int bindRes = bind(s, (SOCKADDR*)aClientAddr, sizeof(*aClientAddr));
 		if (bindRes)
 		{
 			std::cerr << "Error while binding new socket\n" << WSAGetLastError();
@@ -110,7 +115,7 @@ SOCKET newSocket(in_addr aIPAddress, sockaddr_in *aClientAddr, int* aAutoPort, B
 		}
 
 		//listen
-		auto listenRes = listen(s, 1);
+		int listenRes = listen(s, 1);
 		if (listenRes)
 		{
 			std::cerr << "Could not listen to socket\n" << WSAGetLastError();

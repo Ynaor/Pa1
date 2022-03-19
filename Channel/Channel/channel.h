@@ -4,7 +4,9 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-//includes 
+// ************************************************
+// ***********       Includes       ***************
+// ************************************************
 #include <winsock2.h>
 #include <ws2def.h>
 #include <cstdint>
@@ -14,7 +16,9 @@
 #include <ws2tcpip.h>
 
 
-// defines
+// ************************************************
+// ***********       Defines       ****************
+// ************************************************
 #define RANDOM_PORT         0
 #define SINGLE_BIT_MASK		1
 #define BITS_IN_BYTE        8
@@ -28,19 +32,22 @@
 #define HOSTNAME_MAX_LEN    350
 
 
+// ************************************************
+// ***********  Channel functions  ****************
+// ************************************************
 
-// Socket Handling
-// TODO: add description for each function
-void InitAddresses(sockaddr_in* aReceiverAddr, sockaddr_in* aSenderAddr, sockaddr_in* aChannelAddr, sockaddr_in* aUnknownAddr);
+// initiates a new winsock with wsaData attached to it
 void WinsockInit(WSADATA* wsaData);
-void CreateSocket(SOCKET* aSocket);
-void BindServer(SOCKET* aMainSocket, sockaddr_in* aChannelAddr);
 
+// generates random noise according to the probability argument passed by the user
+void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *aFlippedBits);
 
-// Channel functions
-void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed);
-void DeterministicNoise(int aCycle, char* aBuffer);
+// generates deterministic noise according to the cycle length argument passed by the user
+void DeterministicNoise(int aCycle, char* aBuffer, int* aFlippedBits);
+
+// retrieves the current host ip address, will be used for input ip address for both clients (sender and reciever)
 void getHostIp(in_addr* aHostAddr);
-SOCKET newSocket(in_addr aIPAddress, sockaddr_in* aClientAddr, int* aAutoPort, BOOL aIsListen);
 
+// create a new socket and bind it if this socket is for listening
+SOCKET newSocket(in_addr aIPAddress, sockaddr_in* aClientAddr, int* aAutoPort, BOOL aIsListen);
 
