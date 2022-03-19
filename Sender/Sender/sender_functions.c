@@ -97,9 +97,14 @@ int boot_client(char* address, int port)
 }
 
 
-
+/// <summary>
+/// send file
+/// </summary>
+/// <param name="file_name">file name</param>
+/// <param name="p_socket">pointer to socket</param>
+/// <returns>zero if successful, one otherwise</returns>
 int send_file(char* file_name, SOCKET *p_socket) {
-    FILE* fp;
+    FILE* fp = NULL;
     if (fopen_s(&fp, file_name, "rb")) {
         fprintf(stderr, "Error: failed to read file");
         return 1;
@@ -126,14 +131,14 @@ int send_file(char* file_name, SOCKET *p_socket) {
             while (bits_in_packet_buffer < BYTES_IN_PACKET * BITS_IN_BYTE) {
 
                 // read data for single frame. If the read_file_bits returns -1 and bits_read is zero there is no frame to generate.
-                if (read_file_bits(&fp, &frame_data_buffer, &bits_read) == -1) {
+                if (read_file_bits(fp, frame_data_buffer, &bits_read) == -1) {
                     end_of_file = 1;
                     if (bits_read == 0)
                         break;
                 }
-                hamming_check_bits = ceil(log2(bits_read));
+                hamming_check_bits = ceil(log2((double)bits_read));
                 bits_in_frame_buffer = bits_read + hamming_check_bits;
-                create_hamming(&frame_data_buffer, bits_read, &frame_buffer, hamming_check_bits);
+                create_hamming(frame_data_buffer, bits_read, frame_buffer, hamming_check_bits);
                 concatenate_array(packet_buffer, bits_in_packet_buffer, frame_buffer, bits_in_frame_buffer);
                 
                 bits_in_packet_buffer += bits_in_frame_buffer;
@@ -188,8 +193,8 @@ int send_file(char* file_name, SOCKET *p_socket) {
 /// <param name="p_file">file pointer</param>
 /// <param name="buffer">data buffer in which to save the read bits</param>
 /// <returns>zero if MAX_DATA_BITS were read, one if reached end of file</returns>
-int read_file_bits(FILE* p_file, int *data_buffer[], int *bits_read){
-    while (bits_read < DATA_BYTES_IN_FRAME) {
+int read_file_bits(FILE* p_file, int *data_buffer, int *bits_read){
+    while (*bits_read < DATA_BYTES_IN_FRAME) {
         read_mask >>= 1;
         if (read_mask == 0) {
             if (fread(&read_byte, 1, 1, p_file) <= 0)
@@ -313,7 +318,7 @@ void int_to_char(int* source, char* dest, int num_of_bytes) {
         ref_index = 8 * i;
         for (int j = 0; j < BITS_IN_BYTE; j++) {
             temp = source[j + ref_index];
-            temp *= pow(2, (int)BITS_IN_BYTE - 1 - j);
+            temp *= pow(2, (double)BITS_IN_BYTE - 1 - j);
             curr_val += temp;
         }
         dest[i] = curr_val;
