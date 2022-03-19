@@ -1,4 +1,4 @@
-#include "channel.h"s
+#include "channel.h"
 
 
 // ********************************************
@@ -33,7 +33,7 @@ void CreateSocket(SOCKET* aSocket)
 }
 
 
-void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockaddr_in *aChannelAddr)
+void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockaddr_in *aChannelAddr, sockaddr_in *aUnknownAddr)
 {
 
     // Channel
@@ -54,9 +54,8 @@ void InitAddresses(sockaddr_in *aReceiverAddr, sockaddr_in *aSenderAddr, sockadd
 	aSenderAddr->sin_addr.s_addr =aChannelAddr->sin_addr.s_addr;      // IP address of the server
 	aSenderAddr->sin_port = htons(0);                                 // Auto assign port
 
-	std::cout << "Channel  -> Ip: " << inet_ntoa(aChannelAddr->sin_addr) << " port: " << ntohs(aChannelAddr->sin_port) << "\n";
-	std::cout << "Sender   -> Ip: " << inet_ntoa(aSenderAddr->sin_addr)  << " port: " << ntohs(aSenderAddr->sin_port) << "\n";
-	std::cout << "Reciever -> Ip: " << inet_ntoa(aReceiverAddr->sin_addr)<< " port: " << ntohs(aReceiverAddr->sin_port) << "\n";
+	// Unkown
+	memset(aUnknownAddr, 0, sizeof(*aUnknownAddr));
 
 	return;
 }
@@ -71,7 +70,7 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 	std::uniform_int_distribution<int> distribution(0,TWO_POWER_SIXTEEN);
 	long int randomNumber;
 
-	for (int byte = 0; byte < PACKET_SIZE_BYTES; byte++) 
+	for (int byte = 0; byte < BUFFER_SIZE_BYTES; byte++) 
 	{
 		mask = SINGLE_BIT_MASK;
 		for (int bit = 0; bit < BITS_IN_BYTE; bit++)
@@ -91,9 +90,9 @@ void RandomNoise(int aProbability, char *aBuffer, unsigned int aRandSeed)
 void DeterministicNoise(int aCycle, char* aBuffer)
 {
 	int counter = 0;
-	long long int mask;
+	unsigned char mask;
 	
-	for (int byte = 0; byte < PACKET_SIZE_BYTES; byte++)
+	for (int byte = 0; byte < BUFFER_SIZE_BYTES; byte++)
 	{
 		mask = SINGLE_BIT_MASK;
 		for (int bit = 0; bit < BITS_IN_BYTE; bit++)
@@ -110,9 +109,9 @@ void DeterministicNoise(int aCycle, char* aBuffer)
 	}
 }
 
-void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr)
+void BindServer(SOCKET* aMainSocket, sockaddr_in* aChannelAddr)
 {
-	auto bindResult = bind(*aMainSocket, (SOCKADDR*)aServerAddr, sizeof(*aServerAddr));
+	auto bindResult = bind(*aMainSocket, (SOCKADDR*)aChannelAddr, sizeof(*aChannelAddr));
 
 	if (bindResult == SOCKET_ERROR)
 	{
@@ -120,10 +119,14 @@ void BindServer(SOCKET* aMainSocket, sockaddr_in* aServerAddr)
 		exit(1);
 	}
 
+	/*
 	listen(*aMainSocket, SOMAXCONN );
-	socklen_t len = sizeof(aServerAddr);
-	int result = getsockname(*aMainSocket, (SOCKADDR*)aServerAddr,&len);
-	std::cout<< "getsocket(): "<< result;
+	SOCKET AcceptSocket = accept(*aMainSocket, NULL, NULL );
+	
+	int len = sizeof(aChannelAddr);
+	getsockname(AcceptSocket, (SOCKADDR*)aChannelAddr,&len);
+	*/
+	
 }
 
 
@@ -134,20 +137,55 @@ void RunChannel()
 	sockaddr_in receiverAddr;
 	sockaddr_in senderAddr;
 	sockaddr_in channelAddr;
+	sockaddr_in unkownAddr;                   // wil be used to determine who sent a message
+
+
 	WSADATA wsaData;                          // will contain the winsock data
+	fd_set fd_readerSet;
+	timeval timeVal;
 	
+	char messageBuffer[BUFFER_SIZE_BYTES];
 
 	// Initizliaing Winsock
 	WinsockInit(&wsaData);
 	CreateSocket(&MainSocket);
-	InitAddresses(&receiverAddr, &senderAddr, &channelAddr);
+	InitAddresses(&receiverAddr, &senderAddr, &channelAddr, &unkownAddr);
 	BindServer(&MainSocket, &channelAddr);
+
 
 
 	// main logic: Recieve a message, flip bits and send back to reciever
 	while (TRUE)
 	{
-		continue;
+		memset(messageBuffer, 0, sizeof(messageBuffer));
+		FD_ZERO(&fd_readerSet);
+		FD_SET(MainSocket, &fd_readerSet);
+
+		// setting timing configuration - time waiting for messages
+		timeVal.tv_sec = 2;  
+		timeVal.tv_usec = 0;
+
+		// select - ready to get new messages
+		if (select(0, &fd_readerSet, NULL, NULL, &timeVal) == SOCKET_ERROR)
+		{
+			std::cerr << "Error in file descriptor select() \n";
+			exit(1);
+		}
+
+		// get messages from unkown address - will check who sent later on
+		if (recvfrom(MainSocket, messageBuffer, sizeof(messageBuffer), 0, (SOCKADDR*)&unkownAddr, &SIZE_OF_SOCKADDR) < 0)
+		{
+			std::cerr << "Encountered an error while recieving bytes \n";
+			exit(1);
+		}
+
+		// TODO: complete this line and understand functionallity 
+		if ((unkownAddr.sin_port == receiverAddr.sin_port) && unkownAddr.sin_addr.S_un.S_addr == receiverAddr.sin_addr.S_un.S_addr)
+		{
+
+		}
+
+
 	}
 
 
