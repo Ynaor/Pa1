@@ -335,12 +335,15 @@ int boot_client(char* address, int port){
         }
 
         // Client connected succefully, get file name
-        printf("enter file name:\n");
-        if ( scanf("%s", f_name) == NULL) {
+        printf("enter file name:\n");        
+        
+        if (fgets(f_name, MAX_FN, stdin) == NULL) {
             printf("Error: could not read file name\n");
             return 1;
         }
-        /// NEED TO HANDLE TO LONG OF A FILE NAME *********************************************
+
+        strtok(f_name, "\n");
+
         if (strcmp(f_name, "quit") == 0) {
             return 0;
         }
@@ -371,23 +374,23 @@ int send_file(char* file_name, SOCKET *p_socket) {
     
     int end_of_file = 0;
 
-    int packet_buffer[BYTES_IN_PACKET * BITS_IN_BYTE] = { 0 };
+    int packet_buffer[MAX_BYTES_IN_PACKET * BITS_IN_BYTE] = { 0 };
     int bits_in_packet_buffer = 0;
 
-    int frame_data_buffer[DATA_BYTES_IN_FRAME] = { 0 };
-    int frame_buffer[BYTES_IN_FRAME] = { 0 };
+    int frame_data_buffer[DATA_BITS_IN_BLOCK] = { 0 };
+    int frame_buffer[BITS_IN_BLOCK_WITH_HAMMING] = { 0 };
     
     int bits_read = 0;
     int bits_in_frame_buffer = 0;
     
     int hamming_check_bits = DEFAULT_HAMMING_BITS;
 
-    char message[BYTES_IN_PACKET] = { 0 };
+    char message[MAX_BYTES_IN_PACKET] = { 0 };
 
 
         while (TRUE) {
 
-            while (bits_in_packet_buffer < BYTES_IN_PACKET * BITS_IN_BYTE) {
+            while (bits_in_packet_buffer < MAX_BYTES_IN_PACKET * BITS_IN_BYTE) {
 
                 // read data for single frame. If the read_file_bits returns -1 and bits_read is zero there is no frame to generate.
                 if (read_file_bits(fp, frame_data_buffer, &bits_read) == -1) {
@@ -452,7 +455,7 @@ int send_file(char* file_name, SOCKET *p_socket) {
 /// <param name="buffer">data buffer in which to save the read bits</param>
 /// <returns>zero if MAX_DATA_BITS were read, one if reached end of file</returns>
 int read_file_bits(FILE* p_file, int *data_buffer, int *bits_read){
-    while (*bits_read < DATA_BYTES_IN_FRAME) {
+    while (*bits_read < DATA_BITS_IN_BLOCK) {
         read_mask >>= 1;
         if (read_mask == 0) {
             if (fread(&read_byte, 1, 1, p_file) <= 0)

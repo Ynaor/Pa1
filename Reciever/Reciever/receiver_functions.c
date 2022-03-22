@@ -83,10 +83,14 @@ int boot_client(char* address, int port){
 
         // Client connected succefully, get file name
         printf("enter file name:\n");
-        if (scanf("%s", f_name) == NULL) {
+        
+        if (fgets(f_name, MAX_FN, stdin) == NULL) {
             printf("Error: could not read file name\n");
             return 1;
         }
+
+        strtok(f_name, "\n");
+        
         /// NEED TO HANDLE Too LONG FILE NAME *********************************************
         if (strcmp(f_name, "quit") == 0) {
             return 0;
@@ -165,14 +169,14 @@ int communicate_server(char* file_name, SOCKET* p_socket) {
 int parse_packet(FILE* p_file, int* source, int packet_size) {
     
     int total_bits = packet_size * BITS_IN_BYTE;
-    int frames = total_bits / BITS_IN_FRAME;
-    int parsed_frame[DATA_BITS_IN_FRAME];
+    int blocks = total_bits / BITS_IN_BLOCK_WITH_HAMMING;
+    int parsed_block[DATA_BITS_IN_BLOCK];
     int temp = 0;
 
-    for (int i = 0; i < frames; i++) {
-        decode_hamming(&(source[i * BITS_IN_FRAME]), parsed_frame);
-        for (int j = 0; j < DATA_BITS_IN_FRAME; j++) {
-            temp = parsed_frame[j];
+    for (int i = 0; i < blocks; i++) {
+        decode_hamming(&(source[i * BITS_IN_BLOCK_WITH_HAMMING]), parsed_block);
+        for (int j = 0; j < DATA_BITS_IN_BLOCK; j++) {
+            temp = parsed_block[j];
             temp *= pow(2, (double)BITS_IN_BYTE - 1 - next_bit_index);
             write_byte += temp;
             if (next_bit_index == 7) {
@@ -196,7 +200,7 @@ int parse_packet(FILE* p_file, int* source, int packet_size) {
 /// <param name="decoded_buffer">Decoded data</param>
 void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
     int error_index = 0;
-    for (int i = 0; i < BITS_IN_FRAME; i++) {
+    for (int i = 0; i < BITS_IN_BLOCK_WITH_HAMMING; i++) {
         if (encoded_buffer[i] == 1)
             error_index ^= (i + 1);
     }
@@ -207,7 +211,7 @@ void decode_hamming(int* encoded_buffer, int* decoded_buffer) {
     }
 
     int decoded_buffer_index = 0;
-    for (int i = 2; i < BITS_IN_FRAME; i++) {
+    for (int i = 2; i < BITS_IN_BLOCK_WITH_HAMMING; i++) {
         if (ceil(log2((double)i + 1)) == floor(log2((double)i + 1)))
             continue;
         decoded_buffer[decoded_buffer_index] = encoded_buffer[i];
