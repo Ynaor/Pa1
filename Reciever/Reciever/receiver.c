@@ -20,6 +20,8 @@ Project description:	Sender-Receiver communication through a noisy channel
 #include "HardCodedData.h"
 #include "receiver_functions.h"
 
+
+#ifndef HAMMING
 /// <summary>
 /// receiver main. Inputs:
 ///		1. IP (X.X.X.X format)
@@ -35,13 +37,15 @@ int main(int argc, char* argv[])
 	}
 
 	int port = atoi(argv[2]);
-
+	
 	if (port < PORT_MIN_VALUE || port > PORT_MAX_VALUE) {
 		printf("ERROR: invalid port number\n");
 		exit(1);
 	}
-
+	
 	int ret_val = boot_client(argv[1], port);
 
 	return ret_val;
 }
+
+#endif HAMMING

@@ -11,6 +11,9 @@ Project description:	Sender-Receiver communication through a noisy channel
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#define _CRT_SECURE_NO_WARNINGS
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,6 +21,7 @@ Project description:	Sender-Receiver communication through a noisy channel
 #include <Windows.h>
 #include <WS2tcpip.h>
 #include <math.h>
+
 #pragma comment(lib, "Ws2_32.lib")
 
 #include "HardCodedData.h"
@@ -32,26 +36,26 @@ static char read_byte;
 static unsigned int total_bytes_read = 0;
 static unsigned int total_bytes_sent = 0;
 FILE* read_data = NULL; // debug
-FILE* encoded_data = NULL; // debug
+FILE* encoded_data_new = NULL; // debug
 
 
 int main() {
     FILE* fp = NULL;
 
     if (fopen_s(&fp, "test.txt", "rb")) {
-        fprintf(stderr, "Error: failed to read file");
+        fprintf(stderr, "Error: failed to read file test.txt");
         return 1;
     }
 
     
     if (fopen_s(&read_data, "read_data.txt", "wb")) {
-        fprintf(stderr, "Error: failed to read file");
+        fprintf(stderr, "Error: failed to read file read_data.txt");
         return 1;
     }
 
     //debug
-    if (fopen_s(&encoded_data, "encoded_data.txt", "wb")) {
-        fprintf(stderr, "Error: failed to read file");
+    if (fopen_s(&encoded_data_new, "encoded_data_new.txt", "wb")) {
+        fprintf(stderr, "Error: failed to read file encoded_data_new.txt");
         return 1;
     }
 
@@ -111,12 +115,12 @@ int main() {
             break;
     }
 
-    if (!fclose(fp)) {
+    if (fclose(fp)) {
         fprintf(stderr, "Error: failed to close file");
         return 1;
     }
     fclose(read_data);
-    fclose(encoded_data);
+    fclose(encoded_data_new);
     return 0;
 }
 
@@ -218,7 +222,7 @@ void int_to_char(int* source, char* dest, int num_of_bytes) {
         }
         dest[i] = curr_val;
         //debug
-        putc(curr_val, encoded_data);
+        putc(curr_val, encoded_data_new);
     }
 }
 
@@ -332,7 +336,7 @@ int boot_client(char* address, int port){
 
         // Client connected succefully, get file name
         printf("enter file name:\n");
-        if (fgets(f_name, MAX_FN, stdin) == NULL) {
+        if ( scanf("%s", f_name) == NULL) {
             printf("Error: could not read file name\n");
             return 1;
         }
@@ -413,7 +417,7 @@ int send_file(char* file_name, SOCKET *p_socket) {
             int_to_char(packet_buffer, message, bits_in_packet_buffer / BITS_IN_BYTE);
             
             if (send_packet(message, bits_in_packet_buffer / BITS_IN_BYTE, p_socket)) {
-                if (!fclose(fp))
+                if (fclose(fp))
                     fprintf(stderr, "Error: failed to close file");
                 return 1;
             }
@@ -425,7 +429,7 @@ int send_file(char* file_name, SOCKET *p_socket) {
                 break;
         }
 
-        if (!fclose(fp)) {
+        if (fclose(fp)) {
             fprintf(stderr, "Error: failed to close file");
             return 1;
         }

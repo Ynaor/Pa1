@@ -27,8 +27,8 @@ Project description:	Sender-Receiver communication through a noisy channel
 #define DATA_BYTES_IN_FRAME		26												// max data bits in a Hamming interval 
 #define BYTES_IN_FRAME			31												// Total number of bits in Hamming interval, including the check bits
 #define DEFAULT_HAMMING_BITS	5												// Default number of Hamming check bits
-#define FRAMES_IN_PACKET		30												// Max number of Hamming intervals in a packet	          			
-#define BYTES_IN_PACKET			FRAMES_IN_PACKET * BYTES_IN_FRAME				// Max data in packet, size in bytes
+#define FRAMES_IN_PACKET		31												// Max number of Hamming intervals in a packet	          			
+#define BYTES_IN_PACKET			FRAMES_IN_PACKET * BYTES_IN_FRAME * 20			// Max data in packet, size in bytes
 #define DATA_BYTES_IN_PACKET	FRAMES_IN_PACKET * DATA_BYTES_IN_FRAME			// Max packet size in bytes
 #define MAX_FN					300												// Define max file name length to 300 (includin extentions) 	
 
