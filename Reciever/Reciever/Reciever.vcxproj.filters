@@ -23,10 +23,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="receiver_functions.h">
+    <ClInclude Include="HardCodedData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HardCodedData.h">
+    <ClInclude Include="receiver_functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

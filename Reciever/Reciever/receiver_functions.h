@@ -165,4 +165,3 @@ void get_bits(char* read_target, int* data_buffer, int packet_size);
 /// <returns>TRNS_SUCCEDED if a full packet was received, TRNS_DISCONNECTED if while receiving a packet server finished transmition, TRNS_FAILED if there was an error </returns>
 TransferResult_t recv_packet(char* buffer, const int packet_length, SOCKET* p_connection_socket, int* bytes_received);
 #endif HAMMING
-#endif HAMMING
