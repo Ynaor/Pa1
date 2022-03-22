@@ -361,3 +361,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Reciever/Reciever/working.txt
+/Reciever/Reciever/output2.txt
+/Reciever/Reciever/output.txt
+/Reciever/Reciever/input_data.txt
+/Reciever/Reciever/decoded_data.txt
+/Sender/Sender/read_data.txt
+/Sender/Sender/encoded_data_new.txt
+/Sender/Sender/encoded_data.txt
