@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 		
 		// start getting message
 		int bytesRecieved = recv(SenderDataSock, messageBuffer, BUFFER_SIZE_BYTES, 0);
-		messageBuffer[BUFFER_SIZE_BYTES] = '\0';                               // set the whole buffer as one string
+		messageBuffer[bytesRecieved] = '\0';                               // set the whole buffer as one string
 		
 		// Done recieving data from sender
 		closesocket(SenderDataSock);

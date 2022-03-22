@@ -111,7 +111,7 @@ int boot_client(char* address, int port){
 /// <returns>zero if successful, one otherwise</returns>
 int communicate_server(char* file_name, SOCKET* p_socket) {
     FILE* fp;
-    if (fopen_s(&fp, file_name, "w")) {
+    if (fopen_s(&fp, file_name, "wb")) {
         fprintf(stderr, "Error: failed to open file");
         return 1;
     }
