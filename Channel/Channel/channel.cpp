@@ -7,14 +7,14 @@
 
 
 // Will be generating random noise with given seed 
-void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *aFlippedBits)
+void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *aFlippedBits, int abytesRecieved)
 {
 	unsigned char mask; 
 	std::default_random_engine generator(0); 
 	std::uniform_int_distribution<int> distribution(0,TWO_POWER_SIXTEEN);
 	long int randomNumber;
 
-	for (int byte = 0; byte < BUFFER_SIZE_BYTES; byte++) 
+	for (int byte = 0; byte < abytesRecieved; byte++) 
 	{
 		mask = SINGLE_BIT_MASK;
 		for (int bit = 0; bit < BITS_IN_BYTE; bit++)
@@ -31,12 +31,12 @@ void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *a
 	}
 }
 
-void DeterministicNoise(int aCycle, char* aBuffer, int *aFlippedBits)
+void DeterministicNoise(int aCycle, char* aBuffer, int *aFlippedBits, int abytesRecieved)
 {
 	int counter = 0;
 	unsigned char mask;
 	
-	for (int byte = 0; byte < BUFFER_SIZE_BYTES; byte++)
+	for (int byte = 0; byte < abytesRecieved; byte++)
 	{
 		mask = SINGLE_BIT_MASK;
 		for (int bit = 0; bit < BITS_IN_BYTE; bit++)

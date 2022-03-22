@@ -72,12 +72,13 @@ int main(int argc, char* argv[])
 		
 		if (!strcmp("-d", noiseFlag)) // deterministic noise
 		{
-			DeterministicNoise(noiseLevel, messageBuffer, &FlippedBits);
+			DeterministicNoise(noiseLevel, messageBuffer, &FlippedBits, bytesRecieved);
 		}
 		if (!strcmp("-r", noiseFlag))
 		{
-			RandomNoise(noiseLevel, messageBuffer, noiseSeed, &FlippedBits);
+			RandomNoise(noiseLevel, messageBuffer, noiseSeed, &FlippedBits, bytesRecieved);
 		}
+
 
 		// send message with noise
 		int bytesSent = send(RecieverDataSock, messageBuffer, bytesRecieved, 0);
