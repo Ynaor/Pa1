@@ -1,10 +1,9 @@
+/*
+Authors:				Shachar Cohen (313416521) & Yuval Naor (312497084)
+Project:				Programming Assignment 1: Noisy Channel
+Project description:	Sender-Receiver communication through a noisy channel
+*/
 #include "channel.h"
-
-
-// ********************************************
-// **********  Socket Handling   **************
-// ********************************************
-
 
 // Will be generating random noise with given seed 
 void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *aFlippedBits, int abytesRecieved)
@@ -31,6 +30,7 @@ void RandomNoise(int aProbability, char* aBuffer, unsigned int aRandSeed, int *a
 	}
 }
 
+// Will flip every aCycle bit in the incoming message 
 void DeterministicNoise(int aCycle, char* aBuffer, int *aFlippedBits, int abytesRecieved)
 {
 	int counter = 0;
@@ -94,6 +94,7 @@ SOCKET newSocket(sockaddr_in *aClientAddr, int* aAutoPort, BOOL aIsListen)
 	aClientAddr->sin_family = AF_INET;
 	aClientAddr->sin_port = RANDOM_PORT;
 	
+	// In debug mode, testing with Localhost IP address
 	#ifndef _DEBUG
 	aClientAddr->sin_addr.s_addr = INADDR_ANY;
 	#else
